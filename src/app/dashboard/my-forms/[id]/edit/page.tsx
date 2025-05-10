@@ -111,7 +111,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
               <Label htmlFor="preview-mode">Preview Mode</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button variant="outline" size="sm">
+            <Button variant="secondary" size="sm"> {/* Changed variant to secondary */}
               <Save className="mr-2 h-4 w-4" /> Save Changes
             </Button>
             <Button size="sm">

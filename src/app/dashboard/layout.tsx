@@ -6,22 +6,10 @@ import {
   ClipboardList,
   Settings,
   Share2,
-  PlusCircle,
   Bot,
   UserCircle,
   LogOut,
-  Palette,
-  Eye,
-  Save,
-  Send,
-  History,
-  FileText,
-  Sigma,
-  List,
-  CheckSquare,
-  FileUp,
-  CalendarDays,
-  Heading1
+  Search, // Added Search icon
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -38,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/common/logo';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input"; // Added Input component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
@@ -45,8 +34,8 @@ const navItems = [
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
   { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -113,8 +102,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6 shadow-sm">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            {/* Can add breadcrumbs or page specific actions here */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search..."
+                className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px] h-9"
+              />
+            </div>
           </div>
+          {/* Future icons like Notifications, Help can go here */}
         </header>
         <main className="flex-1 p-6">
           {children}
