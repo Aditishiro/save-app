@@ -9,7 +9,7 @@ import {
   Bot,
   UserCircle,
   LogOut,
-  Search, // Added Search icon
+  Search,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -26,7 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/common/logo';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input"; // Added Input component
+import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
@@ -41,8 +41,9 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar variant="sidebar" collapsible="icon" side="left" className="border-r">
+      <Sidebar variant="sidebar" collapsible="icon" side="left" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
+          {/* Logo color will be text-sidebar-foreground as per new design, or text-primary if explicitly set */}
           <Logo />
         </SidebarHeader>
         <SidebarContent className="p-2">
@@ -107,7 +108,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Input
                 type="search"
                 placeholder="Search..."
-                className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px] h-9"
+                className="w-full rounded-md bg-muted pl-8 md:w-[200px] lg:w-[320px] h-9"
               />
             </div>
           </div>

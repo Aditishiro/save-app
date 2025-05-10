@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, FileText, Edit3, Eye, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { Badge } from '@/components/ui/badge'; // Assuming Badge component uses theme colors
 
 // Mock data for forms - replace with actual data fetching
 const forms = [
@@ -46,10 +47,21 @@ export default function MyFormsPage() {
               <CardHeader>
                 <CardTitle className="text-lg">{form.name}</CardTitle>
                 <CardDescription>
-                  Status: <span className={`font-medium ${
-                    form.status === 'Published' ? 'text-green-600' : 
-                    form.status === 'Draft' ? 'text-yellow-600' : 'text-blue-600'
-                  }`}>{form.status}</span>
+                  Status:{" "}
+                  <Badge 
+                    variant={
+                      form.status === 'Published' ? 'default' : // Assuming default uses success-like colors or primary
+                      form.status === 'Draft' ? 'secondary' :    // Or a specific 'warning' variant if available
+                      'outline' // For 'Pending Review' or other statuses
+                    }
+                    className={
+                      form.status === 'Published' ? 'bg-success text-success-foreground' :
+                      form.status === 'Draft' ? 'bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-50' : // Using a direct yellow for draft for now
+                      'text-blue-600 border-blue-300' // Example for Pending review
+                    }
+                  >
+                    {form.status}
+                  </Badge>
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -64,7 +76,7 @@ export default function MyFormsPage() {
                     </Link>
                   </Button>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" aria-label="Preview">
+                    <Button variant="ghost" size="icon" aria-label="Preview" asChild>
                       <Link href={`/dashboard/my-forms/${form.id}/preview`}>
                         <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
                       </Link>

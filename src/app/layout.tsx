@@ -1,16 +1,11 @@
 import type {Metadata} from 'next';
-import { Geist, Geist_Mono } from 'next/font/google'; // Corrected import for Geist fonts
+import { Inter } from 'next/font/google'; // Changed from Geist to Inter
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
-const geistSans = Geist({ // Correct instantiation
-  variable: '--font-geist-sans',
+const inter = Inter({ // Instantiate Inter
   subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({ // Correct instantiation
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  variable: '--font-inter', // Define CSS variable for Inter
 });
 
 export const metadata: Metadata = {
@@ -25,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         {children}
         <Toaster />
       </body>

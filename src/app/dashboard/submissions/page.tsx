@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Filter, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge'; // Using Badge component
 
 const mockSubmissions = [
   { id: 'sub001', formName: 'New Client Onboarding', submitter: 'Alice Johnson', date: '2023-11-15', status: 'Complete' },
@@ -27,10 +28,10 @@ export default function SubmissionsPage() {
       <div className="mb-6 flex flex-col sm:flex-row items-center gap-4">
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search submissions..." className="pl-8" />
+          <Input type="search" placeholder="Search submissions..." className="pl-8 rounded-md" />
         </div>
         <Select defaultValue="all">
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] rounded-md">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -40,7 +41,7 @@ export default function SubmissionsPage() {
             <SelectItem value="needs-review">Needs Review</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" className="w-full sm:w-auto">
+        <Button variant="outline" className="w-full sm:w-auto rounded-md">
             <Filter className="mr-2 h-4 w-4" /> Apply Filters
         </Button>
       </div>
@@ -65,13 +66,20 @@ export default function SubmissionsPage() {
                 <TableCell>{submission.submitter}</TableCell>
                 <TableCell>{submission.date}</TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    submission.status === 'Complete' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                    submission.status === 'Needs Review' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                    'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                  }`}>
+                  <Badge 
+                    variant={
+                      submission.status === 'Complete' ? 'default' :
+                      submission.status === 'Needs Review' ? 'secondary' :
+                      'destructive'
+                    }
+                    className={
+                      submission.status === 'Complete' ? 'bg-success text-success-foreground' :
+                      submission.status === 'Needs Review' ? 'bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-50' : // Or use a theme color if available
+                      'bg-destructive text-destructive-foreground' // 'Incomplete' mapped to destructive for now
+                    }
+                  >
                     {submission.status}
-                  </span>
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm">View</Button>
