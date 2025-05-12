@@ -2,6 +2,7 @@
 'use server';
 /**
  * @fileOverview An AI-powered tool that analyzes a form configuration and suggests improvements, including potential redesigns.
+ * It can optionally use a research document and fetch design best practices to inform its suggestions.
  *
  * - optimizeFormWithAI - A function that handles the form optimization process.
  * - OptimizeFormWithAIInput - The input type for the optimizeFormWithAI function.
@@ -31,19 +32,64 @@ const OptimizeFormWithAIOutputSchema = z.object({
   suggestions: z
     .string()
     .describe(
-      'A list of suggestions for improving the form configuration, including field layout, data validation rules, and components derived from the research document if provided.'
+      'A list of suggestions for improving the form configuration, including field layout, data validation rules, and components derived from the research document or best practices if used.'
     ),
   reasoning: z
     .string()
-    .describe('Explanation of why the suggested changes will improve the form, referencing the research document where applicable.'),
+    .describe('Explanation of why the suggested changes will improve the form, referencing the research document or best practices where applicable.'),
   redesignSuggestions: z
     .string()
     .optional()
     .describe(
-      'Suggestions for redesigning specific components or the overall form structure to address complex problems or future needs identified in the use case or research document.'
+      'Suggestions for redesigning specific components or the overall form structure to address complex problems or future needs identified in the use case, research document, or best practices.'
     ),
 });
 export type OptimizeFormWithAIOutput = z.infer<typeof OptimizeFormWithAIOutputSchema>;
+
+// Define the tool for fetching form design best practices
+const GetFormDesignBestPracticesInputSchema = z.object({
+  useCase: z.string().describe('The intended use case of the form, e.g., "client_onboarding", "financial_application".'),
+});
+
+const GetFormDesignBestPracticesOutputSchema = z.object({
+  bestPractices: z.string().describe('A summary of best practices and common design patterns for the given use case.'),
+});
+
+const getFormDesignBestPracticesTool = ai.defineTool(
+  {
+    name: 'getFormDesignBestPractices',
+    description: 'Retrieves established best practices and common design patterns for a specific type of form or use case.',
+    inputSchema: GetFormDesignBestPracticesInputSchema,
+    outputSchema: GetFormDesignBestPracticesOutputSchema,
+  },
+  async (input) => {
+    // This is a mock implementation. In a real scenario, this could query a database or a knowledge base.
+    let practices = "General best practices: Ensure clarity by using simple language. Minimize the number of fields to reduce user effort. Provide clear and immediate error messages. Ensure the form is accessible (WCAG compliant). Use logical grouping for related fields.";
+    
+    const lowerCaseUseCase = input.useCase.toLowerCase();
+
+    if (lowerCaseUseCase.includes("client_onboarding")) {
+      practices += " For client onboarding: Consider breaking down long forms into multiple steps with progress indicators. Clearly state document requirements upfront. Provide examples for complex fields. Allow saving progress.";
+    } else if (lowerCaseUseCase.includes("financial_application")) {
+      practices += " For financial applications: Prioritize security and explicitly mention data encryption and secure handling. Clearly state compliance requirements (e.g., KYC/AML). Provide detailed explanations for requests of sensitive personal or financial information. Offer help text or tooltips for financial jargon.";
+    } else if (lowerCaseUseCase.includes("ecommerce_checkout")) {
+      practices += " For e-commerce checkout: Offer a guest checkout option. Display a clear summary of the cart items and total cost. Support multiple payment methods. Minimize steps to complete the purchase. Ensure trust signals like security badges are visible.";
+    } else if (lowerCaseUseCase.includes("user_registration")) {
+      practices += " For user registration: Only ask for essential information. Offer social login options. Provide clear password strength indicators. Explain why certain information is needed.";
+    } else if (lowerCaseUseCase.includes("internal_process_automation")) {
+        practices += " For internal process automation: Design forms for efficiency and speed. Pre-fill known information where possible. Use clear and consistent labeling that matches internal terminology. Ensure workflows are clearly mapped to form sections."
+    } else if (lowerCaseUseCase.includes("cross_product_integration")) {
+        practices += " For cross-product integration: Ensure data fields map correctly to API endpoints. Consider versioning for form fields if APIs change. Clearly indicate which data is being shared between products. Provide robust error handling for API communication failures."
+    } else if (lowerCaseUseCase.includes("scalability") || lowerCaseUseCase.includes("future_proofing")) {
+        practices += " For high scalability / future-proofing: Design with modular components. Use a flexible data schema. Plan for internationalization and localization if applicable. Ensure the form infrastructure can handle peak loads."
+    } else if (lowerCaseUseCase.includes("regulatory_compliance")) {
+        practices += " For regulatory compliance heavy forms (e.g., GDPR, HIPAA): Include explicit consent checkboxes. Provide links to privacy policies. Ensure data retention policies are clear. Design for audit trails and secure data storage."
+    }
+
+    return { bestPractices: practices };
+  }
+);
+
 
 export async function optimizeFormWithAI(input: OptimizeFormWithAIInput): Promise<OptimizeFormWithAIOutput> {
   return optimizeFormWithAIFlow(input);
@@ -53,6 +99,7 @@ const prompt = ai.definePrompt({
   name: 'optimizeFormPrompt',
   input: {schema: OptimizeFormWithAIInputSchema},
   output: {schema: OptimizeFormWithAIOutputSchema},
+  tools: [getFormDesignBestPracticesTool], // Make the tool available to the prompt
   prompt: `You are an AI-powered form optimization and design expert. Your goal is to analyze a given form configuration, its intended use case (including complex problems or future needs), and an optional research document to provide suggestions for improvement and potential redesigns.
 
 Form Configuration:
@@ -64,20 +111,20 @@ Intended Use Case (Consider any complex problems or future needs mentioned here)
 {{#if researchDocumentDataUri}}
 Additionally, analyze the following research document for insights:
 {{media url=researchDocumentDataUri}}
-
-Based on this document, suggest relevant form components, fields, and potential improvisations that align with the insights from the document, the form configuration, and the intended use case of the form.
 {{/if}}
 
-Based on all the information provided:
+To provide comprehensive and context-aware recommendations, you have access to the 'getFormDesignBestPractices' tool. If you believe fetching standard best practices for the '{{{intendedUseCase}}}' would improve your analysis and suggestions, use this tool.
+
+Based on all the information provided (form configuration, use case, optional research document, and insights from the 'getFormDesignBestPractices' tool if used):
 1.  **Provide specific, actionable suggestions** for improving the existing form configuration. Focus on:
     *   Field layout and ordering.
     *   Data validation rules.
-    *   Relevant components/fields derived from the research document (if provided).
+    *   Relevant components/fields derived from the research document (if provided) and best practices.
     *   Potential errors or inconsistencies.
-    *   Enhancements to user experience.
-2.  **Analyze for complex problems or future needs** mentioned in the use case or implied by the research document (e.g., scalability, compliance, complex workflows).
-3.  **If necessary, propose redesign suggestions** for specific components or the overall form structure to address these complex problems or future needs. Describe the proposed redesign and how it solves the identified issue or prepares the form for future requirements. Populate the 'redesignSuggestions' field if you propose a redesign.
-4.  **Explain the reasoning** behind all suggestions (both standard improvements and redesigns). Be clear about why the suggested change will improve the form, how it addresses specific problems or future needs, and how it will benefit the user or the process. Reference the research document where applicable.
+    *   Enhancements to user experience, guided by best practices.
+2.  **Analyze for complex problems or future needs** mentioned in the use case or implied by the research document and best practices.
+3.  **If necessary, propose redesign suggestions** for specific components or the overall form structure to address these complex problems or future needs. Describe the proposed redesign and how it solves the identified issue or prepares the form for future requirements, incorporating insights from best practices where relevant. Populate the 'redesignSuggestions' field if you propose a redesign.
+4.  **Explain the reasoning** behind all suggestions (both standard improvements and redesigns). Clearly articulate why the suggested change will improve the form, how it addresses specific problems or future needs, and how it will benefit the user or the process. Reference the research document and/or the output of the 'getFormDesignBestPractices' tool where applicable.
 
 Format your response according to the output schema, ensuring all relevant fields (suggestions, reasoning, redesignSuggestions) are populated appropriately.
   `,
