@@ -18,6 +18,12 @@ const OptimizeFormWithAIInputSchema = z.object({
   intendedUseCase: z
     .string()
     .describe('The intended use case of the form (e.g., loan application, customer onboarding).'),
+  researchDocumentDataUri: z
+    .string()
+    .optional()
+    .describe(
+      "An optional research document (e.g., PDF, TXT) to inform suggestions, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
 });
 export type OptimizeFormWithAIInput = z.infer<typeof OptimizeFormWithAIInputSchema>;
 
@@ -25,11 +31,11 @@ const OptimizeFormWithAIOutputSchema = z.object({
   suggestions: z
     .string()
     .describe(
-      'A list of suggestions for improving the form configuration, including field layout and data validation rules.'
+      'A list of suggestions for improving the form configuration, including field layout, data validation rules, and components derived from the research document if provided.'
     ),
   reasoning: z
     .string()
-    .describe('Explanation of why the suggested changes will improve the form.'),
+    .describe('Explanation of why the suggested changes will improve the form, referencing the research document where applicable.'),
 });
 export type OptimizeFormWithAIOutput = z.infer<typeof OptimizeFormWithAIOutputSchema>;
 
@@ -41,19 +47,31 @@ const prompt = ai.definePrompt({
   name: 'optimizeFormPrompt',
   input: {schema: OptimizeFormWithAIInputSchema},
   output: {schema: OptimizeFormWithAIOutputSchema},
-  prompt: `You are an AI-powered form optimization expert. Your goal is to analyze a given form configuration and provide suggestions for improvement.
+  prompt: `You are an AI-powered form optimization expert. Your goal is to analyze a given form configuration, an intended use case, and an optional research document to provide suggestions for improvement.
 
-  Form Configuration:
-  {{formConfiguration}}
+Form Configuration:
+{{{formConfiguration}}}
 
-  Intended Use Case:
-  {{intendedUseCase}}
+Intended Use Case:
+{{{intendedUseCase}}}
 
-  Based on the form configuration and intended use case, provide specific, actionable suggestions for improving the form. Focus on field layout, data validation rules, and any potential errors or inconsistencies.
+{{#if researchDocumentDataUri}}
+Additionally, analyze the following research document:
+{{media url=researchDocumentDataUri}}
 
-  Explain the reasoning behind each suggestion. Be clear about why the suggested change will improve the form and how it will benefit the user.
+Based on this document, suggest relevant form components, fields, and potential improvisations that align with the insights from the document, the form configuration, and the intended use case of the form.
+{{/if}}
 
-  Format your response as a list of suggestions, with each suggestion followed by its reasoning.
+Based on the information provided (form configuration, intended use case{{#if researchDocumentDataUri}}, and research document{{/if}}), provide specific, actionable suggestions for improving the form. Focus on:
+- Field layout and ordering.
+- Data validation rules.
+- Relevant components/fields derived from the research document (if provided).
+- Potential errors or inconsistencies.
+- Enhancements to user experience.
+
+Explain the reasoning behind each suggestion. Be clear about why the suggested change will improve the form and how it will benefit the user. If a suggestion is derived from the research document, please reference it in your reasoning.
+
+Format your response as a list of suggestions, with each suggestion followed by its reasoning.
   `,
 });
 

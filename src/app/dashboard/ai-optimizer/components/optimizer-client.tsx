@@ -7,15 +7,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2, Wand2, FileText } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function OptimizerClient() {
   const [formConfig, setFormConfig] = useState<string>('');
   const [useCase, setUseCase] = useState<string>('');
+  const [researchDocument, setResearchDocument] = useState<File | null>(null);
   const [result, setResult] = useState<OptimizeFormWithAIOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setResearchDocument(e.target.files[0]);
+    } else {
+      setResearchDocument(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,16 +46,34 @@ export default function OptimizerClient() {
       return;
     }
 
+    let researchDocumentDataUri: string | undefined = undefined;
+    if (researchDocument) {
+      try {
+        researchDocumentDataUri = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (err) => reject(new Error("Failed to read the research document."));
+          reader.readAsDataURL(researchDocument);
+        });
+      } catch (fileError) {
+        setError(fileError instanceof Error ? fileError.message : "Error processing the research document.");
+        setIsLoading(false);
+        return;
+      }
+    }
+
+
     const input: OptimizeFormWithAIInput = {
       formConfiguration: formConfig,
       intendedUseCase: useCase,
+      researchDocumentDataUri: researchDocumentDataUri,
     };
 
     try {
       const output = await optimizeFormWithAI(input);
       setResult(output);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred while optimizing the form.');
       console.error('AI Optimizer Error:', err);
     } finally {
       setIsLoading(false);
@@ -80,6 +107,20 @@ export default function OptimizerClient() {
             required
           />
            <p className="text-xs text-muted-foreground mt-1">Describe how this form will be used.</p>
+        </div>
+         <div>
+          <Label htmlFor="researchDocument" className="text-base font-medium flex items-center gap-1">
+            <FileText className="h-4 w-4" />
+            Research Document (Optional)
+          </Label>
+          <Input
+            id="researchDocument"
+            type="file"
+            accept=".pdf,.txt,.md" 
+            onChange={handleFileChange}
+            className="mt-1"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Upload a research document (PDF, TXT, MD) to inform suggestions. Max 10MB.</p>
         </div>
         <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
           {isLoading ? (
