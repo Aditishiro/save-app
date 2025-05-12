@@ -10,46 +10,98 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/common/page-header';
 import { FormFieldData } from '@/components/form-builder/form-field-display'; // Re-use interface
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-// Mock form data for preview
-const MOCK_FORM_PREVIEW_DATA: { id: string, title: string, description: string, fields: FormFieldData[] } = {
-  id: '1',
-  title: 'New Client Onboarding (Preview)',
-  description: 'Please fill out the form below to begin the onboarding process.',
-  fields: [
-    { id: 'field_prev_1', type: 'text', label: 'Full Name', placeholder: 'e.g., John Doe', required: true },
-    { id: 'field_prev_2', type: 'number', label: 'Your Age', placeholder: 'e.g., 30', required: false },
-    { id: 'field_prev_3', type: 'header', label: 'Address Details' },
-    { id: 'field_prev_4', type: 'dropdown', label: 'Country of Residence', options: ['USA', 'Canada', 'UK', 'Australia'], required: true, placeholder: 'Select your country' },
-    { id: 'field_prev_5', type: 'checkbox', label: 'I agree to the terms and conditions', required: true },
-    { id: 'field_prev_6', type: 'date', label: 'Preferred Start Date', required: false },
-    { id: 'field_prev_7', type: 'file', label: 'Upload ID Document', required: true },
-    { id: 'field_prev_8', type: 'textarea', label: 'Additional Comments', placeholder: 'Any other information...', required: false },
-  ],
+interface MockFormPreview {
+  id: string;
+  title: string;
+  description?: string;
+  fields: FormFieldData[];
+}
+
+// Mock form data store for preview - should match the edit store structure ideally
+const MOCK_FORM_PREVIEW_STORE: Record<string, MockFormPreview> = {
+  '1': {
+    id: '1',
+    title: 'Client Onboarding Form (Preview)',
+    description: 'Please fill out this form to begin the onboarding process.',
+    fields: [
+      { id: 'field_1', type: 'text', label: 'Full Name', placeholder: 'e.g., Jane Doe', required: true },
+      { id: 'field_2', type: 'number', label: 'Age', placeholder: 'e.g., 35', required: false },
+      { id: 'field_3', type: 'header', label: 'Contact Information' },
+      { id: 'field_4', type: 'dropdown', label: 'Country', options: ['USA', 'Canada', 'UK'], required: true, placeholder: 'Select Country' },
+      { id: 'field_prev_5', type: 'checkbox', label: 'Agree to terms', required: true }, // Using preview ID from original
+      { id: 'field_prev_6', type: 'date', label: 'Preferred Start Date', required: false },
+      { id: 'field_prev_7', type: 'file', label: 'Upload ID', required: true },
+      { id: 'field_prev_8', type: 'textarea', label: 'Additional Notes', placeholder: 'Optional comments...', required: false },
+    ],
+  },
+  '2': {
+     id: '2',
+     title: 'Loan Application - V3 (Preview)',
+     description: 'Complete the following sections to apply for a loan.',
+     fields: [
+       { id: 'field_loan_1', type: 'header', label: 'Personal Information' },
+       { id: 'field_loan_2', type: 'text', label: 'Applicant Name', required: true },
+       { id: 'field_loan_3', type: 'date', label: 'Date of Birth', required: true },
+       { id: 'field_loan_4', type: 'header', label: 'Loan Details' },
+       { id: 'field_loan_5', type: 'number', label: 'Loan Amount Requested', placeholder: '$', required: true },
+       { id: 'field_loan_6', type: 'textarea', label: 'Purpose of Loan', required: true },
+     ],
+  },
+   '3': {
+    id: '3',
+    title: 'Customer Feedback Survey Q3 (Preview)',
+    description: 'We value your feedback!',
+    fields: [
+       { id: 'field_fb_1', type: 'header', label: 'Your Experience' },
+       { id: 'field_fb_2', type: 'dropdown', label: 'Overall Satisfaction', options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'], required: true, placeholder: 'Select rating' },
+       { id: 'field_fb_3', type: 'textarea', label: 'Comments/Suggestions', placeholder: 'Tell us more...' },
+    ],
+  },
+  // Form '4' is intentionally left out
 };
 
+
 export default function FormPreviewPage({ params }: { params: { id: string } }) {
-  const [formConfig, setFormConfig] = useState<typeof MOCK_FORM_PREVIEW_DATA | null>(null);
+  const [formConfig, setFormConfig] = useState<MockFormPreview | null>(null);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
+    setIsLoading(true);
+    setError(null);
     // Simulate fetching form configuration
-    if (params.id === MOCK_FORM_PREVIEW_DATA.id) {
-      setFormConfig(MOCK_FORM_PREVIEW_DATA);
-      // Initialize formValues
-      const initialValues: Record<string, any> = {};
-      MOCK_FORM_PREVIEW_DATA.fields.forEach(field => {
-        if (field.type === 'checkbox') {
-          initialValues[field.id] = false;
-        } else {
-          initialValues[field.id] = '';
-        }
-      });
-      setFormValues(initialValues);
-    }
+    const fetchedForm = MOCK_FORM_PREVIEW_STORE[params.id];
+    
+    const timer = setTimeout(() => {
+      if (fetchedForm) {
+        setFormConfig(fetchedForm);
+        // Initialize formValues
+        const initialValues: Record<string, any> = {};
+        fetchedForm.fields.forEach(field => {
+          // Skip headers for form values
+          if (field.type === 'header') return;
+          
+          if (field.type === 'checkbox') {
+            initialValues[field.id] = false;
+          } else {
+            initialValues[field.id] = '';
+          }
+        });
+        setFormValues(initialValues);
+      } else {
+        setError(`Form preview for ID "${params.id}" could not be found.`);
+      }
+      setIsLoading(false);
+    }, 500); // Simulate delay
+
+    return () => clearTimeout(timer);
+
   }, [params.id]);
 
   const handleChange = (fieldId: string, value: any, type?: string) => {
@@ -57,8 +109,8 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
     // Basic real-time validation (example)
     if (validationErrors[fieldId]) {
       const currentField = formConfig?.fields.find(f => f.id === fieldId);
-      if (currentField?.required && !value) {
-        // Keep error if still invalid
+      if (currentField?.required && !value && !(type === 'checkbox' && value === false)) { // Keep error if still invalid
+         // Need to handle checkbox specifically, false is a valid value but empty string isn't
       } else {
         setValidationErrors(prev => {
           const newErrors = { ...prev };
@@ -73,22 +125,49 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
     e.preventDefault();
     const errors: Record<string, string> = {};
     formConfig?.fields.forEach(field => {
-      if (field.required && !formValues[field.id]) {
-        errors[field.id] = `${field.label} is required.`;
+       if (field.type === 'header') return; // Skip validation for headers
+
+      if (field.required) {
+         if (field.type === 'checkbox') {
+            if (!formValues[field.id]) { // Checkbox must be true if required
+              errors[field.id] = `${field.label} is required.`;
+            }
+         } else if (!formValues[field.id]) { // Other fields just need a value
+            errors[field.id] = `${field.label} is required.`;
+         }
       }
-      // Add more complex validation logic here
+      // Add more complex validation logic here (e.g., email format, number range)
     });
     setValidationErrors(errors);
     if (Object.keys(errors).length === 0) {
       alert('Form submitted successfully (mock)! Data: ' + JSON.stringify(formValues, null, 2));
+      // Reset form or redirect here in a real app
     } else {
+      // Find the first field with an error and focus it
+      const firstErrorFieldId = Object.keys(errors)[0];
+      const element = document.getElementById(firstErrorFieldId);
+      element?.focus();
       alert('Please correct the errors in the form.');
     }
   };
 
-  if (!formConfig) {
+  if (isLoading) {
     return (
-      <PageHeader title="Loading Preview..." />
+      <div className="flex items-center justify-center h-[calc(100vh-theme(spacing.28))]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading form preview...</span>
+      </div>
+    );
+  }
+
+  if (error || !formConfig) {
+     return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-theme(spacing.28))]">
+         <PageHeader title="Error Loading Preview" description={error || "Form configuration is missing."} />
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/my-forms">Back to My Forms</Link>
+          </Button>
+      </div>
     );
   }
 
@@ -105,7 +184,7 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
           </Button>
         }
       />
-      <Card className="max-w-2xl mx-auto shadow-lg">
+      <Card className="max-w-3xl mx-auto shadow-lg border border-border">
         <CardHeader>
           <CardTitle className="text-2xl">{formConfig.title}</CardTitle>
           {formConfig.description && <CardDescription>{formConfig.description}</CardDescription>}
@@ -114,10 +193,11 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
           <form onSubmit={handleSubmit} className="space-y-6">
             {formConfig.fields.map(field => {
               if (field.type === 'header') {
-                return <h2 key={field.id} className="text-xl font-semibold pt-4 pb-2 border-b">{field.label}</h2>;
+                // Render headers differently, maybe with margin/padding
+                return <h2 key={field.id} className="text-xl font-semibold pt-6 pb-2 border-b border-border first:pt-0">{field.label}</h2>;
               }
               return (
-                <div key={field.id} className="space-y-1">
+                <div key={field.id} className="space-y-2">
                   <Label htmlFor={field.id}>
                     {field.label}
                     {field.required && <span className="text-destructive ml-1">*</span>}
@@ -129,7 +209,9 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
                       placeholder={field.placeholder}
                       value={formValues[field.id] || ''}
                       onChange={e => handleChange(field.id, e.target.value)}
-                      className={validationErrors[field.id] ? 'border-destructive ring-destructive' : ''}
+                      className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''}
+                      aria-invalid={!!validationErrors[field.id]}
+                      aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
                     />
                   ) : field.type === 'textarea' ? (
                      <Textarea
@@ -137,45 +219,57 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
                       placeholder={field.placeholder}
                       value={formValues[field.id] || ''}
                       onChange={e => handleChange(field.id, e.target.value)}
-                      className={validationErrors[field.id] ? 'border-destructive ring-destructive' : ''}
+                      className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''}
+                      aria-invalid={!!validationErrors[field.id]}
+                      aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
+                      rows={3}
                     />
-                  ) : field.type === 'dropdown' ? (
+                  ) : field.type === 'dropdown' && field.options ? (
                     <Select
                       value={formValues[field.id] || ''}
                       onValueChange={value => handleChange(field.id, value)}
+                      required={field.required}
                     >
-                      <SelectTrigger id={field.id} className={validationErrors[field.id] ? 'border-destructive ring-destructive' : ''}>
+                      <SelectTrigger id={field.id} className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''} aria-invalid={!!validationErrors[field.id]} aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}>
                         <SelectValue placeholder={field.placeholder || "Select an option"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {field.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                        {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   ) : field.type === 'checkbox' ? (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-start space-x-2 pt-1">
                       <Checkbox
                         id={field.id}
                         checked={formValues[field.id] || false}
                         onCheckedChange={checked => handleChange(field.id, checked, 'checkbox')}
-                        className={validationErrors[field.id] ? 'border-destructive ring-destructive' : ''}
+                        className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive [&[data-state=checked]]:bg-destructive [&[data-state=checked]]:border-destructive' : ''}
+                        aria-invalid={!!validationErrors[field.id]}
+                        aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
                       />
-                       <Label htmlFor={field.id} className="font-normal">
-                         {field.label.replace(/ is required.$/, '')} {/* Minor clean up for checkbox label */}
-                       </Label>
+                       {/* Put label text in its own div for better alignment */}
+                       <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor={field.id} className="font-normal cursor-pointer">
+                            {field.label.replace(/ is required.$/, '')} {/* Minor clean up */}
+                        </Label>
+                         {/* You could add a description here if needed */}
+                        </div>
                     </div>
                   ) : field.type === 'file' ? (
                     <Input
                       id={field.id}
                       type="file"
                       onChange={e => handleChange(field.id, e.target.files ? e.target.files[0] : null)}
-                      className={validationErrors[field.id] ? 'border-destructive ring-destructive' : ''}
+                      className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''}
+                      aria-invalid={!!validationErrors[field.id]}
+                      aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
                     />
                   ) : null}
-                  {validationErrors[field.id] && <p className="text-sm text-destructive">{validationErrors[field.id]}</p>}
+                  {validationErrors[field.id] && <p id={`${field.id}-error`} className="text-sm text-destructive mt-1">{validationErrors[field.id]}</p>}
                 </div>
               );
             })}
-            <Button type="submit" className="w-full">Submit Form</Button>
+            <Button type="submit" className="w-full sm:w-auto" size="lg">Submit Form</Button>
           </form>
         </CardContent>
       </Card>

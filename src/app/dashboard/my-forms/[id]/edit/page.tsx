@@ -1,8 +1,5 @@
 'use client';
 
-// This page would fetch form data based on [id] and populate the form builder.
-// For now, it's largely a copy of the create page for demonstration.
-
 import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { FieldPalette } from '@/components/form-builder/field-palette';
@@ -10,7 +7,7 @@ import { FormCanvas } from '@/components/form-builder/form-canvas';
 import { PropertiesPanel } from '@/components/form-builder/properties-panel';
 import { FormFieldData, FormFieldDisplay } from '@/components/form-builder/form-field-display';
 import { PageHeader } from '@/components/common/page-header';
-import { Save, Send, Eye, History as HistoryIcon } from 'lucide-react';
+import { Save, Send, Eye, History as HistoryIcon, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -24,16 +21,52 @@ import Link from 'next/link';
 
 type FieldConfig = FormFieldData;
 
-// Mock form data for editing
-const MOCK_FORM_DATA: { id: string, title: string, fields: FieldConfig[] } = {
-  id: '1',
-  title: 'Client Onboarding Form (Editing)',
-  fields: [
-    { id: 'field_1', type: 'text', label: 'Full Name', placeholder: 'Enter full name', required: true, validationState: 'default' },
-    { id: 'field_2', type: 'number', label: 'Age', placeholder: 'Enter age', required: false, validationState: 'validated' },
-    { id: 'field_3', type: 'header', label: 'Contact Information', validationState: 'default' },
-    { id: 'field_4', type: 'dropdown', label: 'Country', options: ['USA', 'Canada', 'UK'], required: true, validationState: 'default' },
-  ],
+// Mock form data store - replace with actual data fetching logic
+const MOCK_FORM_STORE: Record<string, { id: string, title: string, fields: FieldConfig[], versions?: { version: string, date: string, status: string }[] }> = {
+  '1': {
+    id: '1',
+    title: 'Client Onboarding Form (Editing)',
+    fields: [
+      { id: 'field_1', type: 'text', label: 'Full Name', placeholder: 'Enter full name', required: true, validationState: 'default' },
+      { id: 'field_2', type: 'number', label: 'Age', placeholder: 'Enter age', required: false, validationState: 'validated' },
+      { id: 'field_3', type: 'header', label: 'Contact Information', validationState: 'default' },
+      { id: 'field_4', type: 'dropdown', label: 'Country', options: ['USA', 'Canada', 'UK'], required: true, validationState: 'default' },
+    ],
+    versions: [
+      { version: '1.1', date: 'Current Draft', status: 'Draft' },
+      { version: '1.0', date: '2024-07-28', status: 'Published' },
+    ]
+  },
+  '2': {
+    id: '2',
+    title: 'Loan Application - V3 (Editing)',
+    fields: [
+      { id: 'field_loan_1', type: 'header', label: 'Personal Information' },
+      { id: 'field_loan_2', type: 'text', label: 'Applicant Name', required: true },
+      { id: 'field_loan_3', type: 'date', label: 'Date of Birth', required: true },
+      { id: 'field_loan_4', type: 'header', label: 'Loan Details' },
+      { id: 'field_loan_5', type: 'number', label: 'Loan Amount Requested', placeholder: '$', required: true },
+      { id: 'field_loan_6', type: 'textarea', label: 'Purpose of Loan', required: true },
+    ],
+     versions: [
+      { version: '3.0', date: 'Current Draft', status: 'Draft' },
+      { version: '2.1', date: '2024-07-20', status: 'Archived' },
+      { version: '2.0', date: '2024-07-10', status: 'Archived' },
+    ]
+  },
+  '3': {
+    id: '3',
+    title: 'Customer Feedback Survey Q3 (Editing)',
+    fields: [
+       { id: 'field_fb_1', type: 'header', label: 'Your Experience' },
+       { id: 'field_fb_2', type: 'dropdown', label: 'Overall Satisfaction', options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'], required: true },
+       { id: 'field_fb_3', type: 'textarea', label: 'Comments/Suggestions' },
+    ],
+     versions: [
+      { version: '1.0', date: '2024-07-15', status: 'Published' },
+    ]
+  },
+  // Form '4' (Internal IT Request) is intentionally left out to test 'Not Found'
 };
 
 
@@ -41,17 +74,34 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
   const [formFields, setFormFields] = useState<FieldConfig[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [formTitle, setFormTitle] = useState<string>("Loading form...");
+  const [formVersions, setFormVersions] = useState<{ version: string, date: string, status: string }[]>([]);
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate fetching form data
-    if (params.id === MOCK_FORM_DATA.id) {
-      setFormTitle(MOCK_FORM_DATA.title);
-      setFormFields(MOCK_FORM_DATA.fields);
-    } else {
-      setFormTitle("Form Not Found");
-      setFormFields([]);
-    }
+    setIsLoading(true);
+    setError(null);
+    // Simulate fetching form data based on params.id
+    const fetchedForm = MOCK_FORM_STORE[params.id];
+    
+    // Simulate API delay
+    const timer = setTimeout(() => {
+      if (fetchedForm) {
+        setFormTitle(fetchedForm.title);
+        setFormFields(fetchedForm.fields);
+        setFormVersions(fetchedForm.versions || []);
+      } else {
+        setFormTitle("Form Not Found");
+        setFormFields([]);
+        setFormVersions([]);
+        setError(`Form with ID "${params.id}" could not be found.`);
+      }
+      setIsLoading(false);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer); // Cleanup timer on unmount
+
   }, [params.id]);
 
 
@@ -79,6 +129,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
         field.id === fieldId ? { ...field, ...updates } : field
       )
     );
+    // In a real app, you might mark the form as dirty/unsaved here
   }, []);
   
   const handleDeleteField = useCallback((fieldId: string) => {
@@ -86,6 +137,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
     if (selectedFieldId === fieldId) {
       setSelectedFieldId(null);
     }
+    // Mark as dirty/unsaved
   }, [selectedFieldId]);
 
   const selectedFieldConfig = formFields.find(f => f.id === selectedFieldId) || null;
@@ -99,6 +151,26 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
     />
   ));
 
+  if (isLoading) {
+     return (
+      <div className="flex items-center justify-center h-[calc(100vh-theme(spacing.28))]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading form...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-theme(spacing.28))]">
+         <PageHeader title="Error Loading Form" description={error} />
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/my-forms">Back to My Forms</Link>
+          </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]"> {/* Adjust height based on header/footer */}
       <PageHeader
@@ -111,7 +183,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
               <Label htmlFor="preview-mode">Preview Mode</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button variant="secondary" size="sm"> {/* Changed variant to secondary */}
+            <Button variant="secondary" size="sm"> 
               <Save className="mr-2 h-4 w-4" /> Save Changes
             </Button>
             <Button size="sm">
@@ -124,8 +196,15 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Version 1.1 (Current Draft)</DropdownMenuItem>
-                <DropdownMenuItem>Version 1.0 (Published - 2023-10-26)</DropdownMenuItem>
+                {formVersions.length > 0 ? (
+                   formVersions.map(v => (
+                     <DropdownMenuItem key={v.version} disabled={v.status !== 'Published' && v.status !== 'Archived' /* Allow reverting to published/archived only */ }>
+                      Version {v.version} ({v.date}) {v.status !== 'Draft' && `(${v.status})`}
+                     </DropdownMenuItem>
+                   ))
+                ) : (
+                   <DropdownMenuItem disabled>No previous versions</DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

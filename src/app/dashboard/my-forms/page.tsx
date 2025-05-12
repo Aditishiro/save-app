@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, FileText, Edit3, Eye, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
-import { Badge } from '@/components/ui/badge'; // Assuming Badge component uses theme colors
+import { Badge } from '@/components/ui/badge'; 
 
 // Mock data for forms - replace with actual data fetching
 const forms = [
-  { id: '1', name: 'New Client Onboarding', status: 'Published', lastModified: '2023-10-26', submissions: 120 },
-  { id: '2', name: 'Loan Application Form - V2', status: 'Draft', lastModified: '2023-11-05', submissions: 0 },
-  { id: '3', name: 'Customer Feedback Survey', status: 'Pending Review', lastModified: '2023-11-10', submissions: 45 },
+  { id: '1', name: 'Client Onboarding Form', status: 'Published', lastModified: '2024-07-28', submissions: 152 },
+  { id: '2', name: 'Loan Application - V3', status: 'Draft', lastModified: '2024-07-25', submissions: 0 },
+  { id: '3', name: 'Customer Feedback Survey Q3', status: 'Published', lastModified: '2024-07-15', submissions: 88 },
+  { id: '4', name: 'Internal IT Request', status: 'Archived', lastModified: '2024-06-30', submissions: 210 },
 ];
 
 export default function MyFormsPage() {
@@ -50,14 +51,16 @@ export default function MyFormsPage() {
                   Status:{" "}
                   <Badge 
                     variant={
-                      form.status === 'Published' ? 'default' : // Assuming default uses success-like colors or primary
-                      form.status === 'Draft' ? 'secondary' :    // Or a specific 'warning' variant if available
-                      'outline' // For 'Pending Review' or other statuses
+                      form.status === 'Published' ? 'default' :
+                      form.status === 'Draft' ? 'secondary' :
+                      form.status === 'Archived' ? 'outline' : // Example for Archived
+                      'outline' // Default fallback
                     }
                     className={
                       form.status === 'Published' ? 'bg-success text-success-foreground' :
-                      form.status === 'Draft' ? 'bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-50' : // Using a direct yellow for draft for now
-                      'text-blue-600 border-blue-300' // Example for Pending review
+                      form.status === 'Draft' ? 'bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-50' : 
+                      form.status === 'Archived' ? 'border-dashed text-muted-foreground' :
+                      '' 
                     }
                   >
                     {form.status}
