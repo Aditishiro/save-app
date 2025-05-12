@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Wand2, FileText } from 'lucide-react';
+import { Loader2, Wand2, FileText, Recycle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function OptimizerClient() {
@@ -20,7 +20,15 @@ export default function OptimizerClient() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      // Basic file size validation (e.g., 10MB)
+      if (e.target.files[0].size > 10 * 1024 * 1024) {
+          setError("Research document size should not exceed 10MB.");
+          e.target.value = ''; // Clear the input
+          setResearchDocument(null);
+          return;
+      }
       setResearchDocument(e.target.files[0]);
+       setError(null); // Clear previous file errors
     } else {
       setResearchDocument(null);
     }
@@ -37,7 +45,7 @@ export default function OptimizerClient() {
       setIsLoading(false);
       return;
     }
-    
+
     try {
       JSON.parse(formConfig); // Validate JSON
     } catch (jsonError) {
@@ -97,16 +105,16 @@ export default function OptimizerClient() {
           <p className="text-xs text-muted-foreground mt-1">Enter the JSON representation of your form.</p>
         </div>
         <div>
-          <Label htmlFor="intendedUseCase" className="text-base font-medium">Intended Use Case</Label>
+          <Label htmlFor="intendedUseCase" className="text-base font-medium">Intended Use Case & Future Needs</Label>
           <Input
             id="intendedUseCase"
             value={useCase}
             onChange={(e) => setUseCase(e.target.value)}
-            placeholder="e.g., New client onboarding for wealth management"
+            placeholder="e.g., New client onboarding, needs to scale internationally, must comply with GDPR."
             className="mt-1"
             required
           />
-           <p className="text-xs text-muted-foreground mt-1">Describe how this form will be used.</p>
+           <p className="text-xs text-muted-foreground mt-1">Describe how this form will be used and any complex problems or future requirements.</p>
         </div>
          <div>
           <Label htmlFor="researchDocument" className="text-base font-medium flex items-center gap-1">
@@ -116,11 +124,11 @@ export default function OptimizerClient() {
           <Input
             id="researchDocument"
             type="file"
-            accept=".pdf,.txt,.md" 
+            accept=".pdf,.txt,.md,.docx" // Added docx
             onChange={handleFileChange}
             className="mt-1"
           />
-          <p className="text-xs text-muted-foreground mt-1">Upload a research document (PDF, TXT, MD) to inform suggestions. Max 10MB.</p>
+          <p className="text-xs text-muted-foreground mt-1">Upload a relevant document (PDF, TXT, MD, DOCX) to inform suggestions. Max 10MB.</p>
         </div>
         <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
           {isLoading ? (
@@ -140,19 +148,29 @@ export default function OptimizerClient() {
       )}
 
       {result && (
-        <Card className="mt-6 bg-secondary/50">
+        <Card className="mt-6 bg-secondary/50 border border-border">
           <CardHeader>
-            <CardTitle className="text-xl">Optimization Suggestions</CardTitle>
+            <CardTitle className="text-xl">Optimization Results</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg mb-1">Suggestions:</h3>
+          <CardContent className="space-y-6">
+            {result.redesignSuggestions && (
+              <div className="border border-primary/30 p-4 rounded-md bg-primary/5">
+                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2 text-primary">
+                  <Recycle className="h-5 w-5"/>
+                  Redesign Suggestions:
+                </h3>
+                <pre className="whitespace-pre-wrap bg-background p-4 rounded-md text-sm shadow">{result.redesignSuggestions}</pre>
+              </div>
+            )}
+             <div>
+              <h3 className="font-semibold text-lg mb-1">Improvement Suggestions:</h3>
               <pre className="whitespace-pre-wrap bg-background p-4 rounded-md text-sm shadow">{result.suggestions}</pre>
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-1">Reasoning:</h3>
               <pre className="whitespace-pre-wrap bg-background p-4 rounded-md text-sm shadow">{result.reasoning}</pre>
             </div>
+
           </CardContent>
         </Card>
       )}

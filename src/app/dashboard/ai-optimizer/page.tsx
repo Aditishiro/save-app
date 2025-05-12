@@ -8,7 +8,7 @@ export default function AiOptimizerPage() {
     <>
       <PageHeader
         title="AI Form Optimizer"
-        description="Leverage AI to get suggestions for improving your form configurations."
+        description="Leverage AI to get suggestions for improving your form configurations, including potential redesigns."
       />
       <Card className="shadow-lg">
         <CardHeader>
@@ -17,7 +17,7 @@ export default function AiOptimizerPage() {
             Optimize Your Form
           </CardTitle>
           <CardDescription>
-            Provide your form's JSON configuration and its intended use case. Our AI will analyze it and suggest improvements for better performance and user experience.
+            Provide your form's JSON, intended use case (including any complex problems or future needs), and optionally a research document. Our AI will analyze it, suggest improvements, and even propose redesigns to address future challenges.
           </CardDescription>
         </CardHeader>
         <CardContent>
