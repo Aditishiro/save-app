@@ -1,3 +1,4 @@
+tsx
 'use client';
 
 import { useState } from 'react';
@@ -9,10 +10,26 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Wand2, FileText, Recycle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const useCaseOptions = [
+  { value: "standard_data_collection", label: "Standard Data Collection (e.g., Contact Form, Basic Survey)" },
+  { value: "client_onboarding", label: "Client Onboarding (Validation, multi-step)" },
+  { value: "financial_application", label: "Financial Application (Security, compliance)" },
+  { value: "ecommerce_checkout", label: "E-commerce Checkout (Payment, inventory)" },
+  { value: "user_registration", label: "User Registration (Auth, profiles)" },
+  { value: "internal_process_automation", label: "Internal Process Automation (Workflows)" },
+  { value: "cross_product_integration", label: "Cross-Product Integration (API, data mapping)" },
+  { value: "scalability_future_proofing", label: "High Scalability / Future-Proofing (Complex data, evolving needs)" },
+  { value: "regulatory_compliance_heavy", label: "Regulatory Compliance Heavy (e.g., GDPR, HIPAA, Financial Audits)" },
+  { value: "other", label: "Other (Please specify below)" },
+];
+
 
 export default function OptimizerClient() {
   const [formConfig, setFormConfig] = useState<string>('');
-  const [useCase, setUseCase] = useState<string>('');
+  const [selectedUseCaseValue, setSelectedUseCaseValue] = useState<string>('');
+  const [customUseCaseText, setCustomUseCaseText] = useState<string>('');
   const [researchDocument, setResearchDocument] = useState<File | null>(null);
   const [result, setResult] = useState<OptimizeFormWithAIOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +57,16 @@ export default function OptimizerClient() {
     setResult(null);
     setError(null);
 
-    if (!formConfig.trim() || !useCase.trim()) {
-      setError("Please provide both form configuration and intended use case.");
+    let finalUseCaseDescription = '';
+    if (selectedUseCaseValue === 'other') {
+      finalUseCaseDescription = customUseCaseText.trim();
+    } else {
+      const selectedOption = useCaseOptions.find(opt => opt.value === selectedUseCaseValue);
+      finalUseCaseDescription = selectedOption ? selectedOption.label : '';
+    }
+
+    if (!formConfig.trim() || !finalUseCaseDescription) {
+      setError("Please provide form configuration and specify the intended use case.");
       setIsLoading(false);
       return;
     }
@@ -73,7 +98,7 @@ export default function OptimizerClient() {
 
     const input: OptimizeFormWithAIInput = {
       formConfiguration: formConfig,
-      intendedUseCase: useCase,
+      intendedUseCase: finalUseCaseDescription,
       researchDocumentDataUri: researchDocumentDataUri,
     };
 
@@ -104,18 +129,43 @@ export default function OptimizerClient() {
           />
           <p className="text-xs text-muted-foreground mt-1">Enter the JSON representation of your form.</p>
         </div>
+        
         <div>
-          <Label htmlFor="intendedUseCase" className="text-base font-medium">Intended Use Case & Future Needs</Label>
-          <Input
-            id="intendedUseCase"
-            value={useCase}
-            onChange={(e) => setUseCase(e.target.value)}
-            placeholder="e.g., New client onboarding, needs to scale internationally, must comply with GDPR."
-            className="mt-1"
+          <Label htmlFor="intendedUseCaseSelect" className="text-base font-medium">Intended Use Case & Future Needs</Label>
+          <Select
+            value={selectedUseCaseValue}
+            onValueChange={setSelectedUseCaseValue}
             required
-          />
-           <p className="text-xs text-muted-foreground mt-1">Describe how this form will be used and any complex problems or future requirements.</p>
+          >
+            <SelectTrigger id="intendedUseCaseSelect" className="mt-1">
+              <SelectValue placeholder="Select a use case..." />
+            </SelectTrigger>
+            <SelectContent>
+              {useCaseOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">Select the primary purpose or describe complex problems/future needs for the form.</p>
         </div>
+
+        {selectedUseCaseValue === 'other' && (
+          <div>
+            <Label htmlFor="customUseCaseText" className="text-base font-medium">Specify Other Use Case</Label>
+            <Textarea
+              id="customUseCaseText"
+              value={customUseCaseText}
+              onChange={(e) => setCustomUseCaseText(e.target.value)}
+              placeholder="Describe the specific use case, complex problems, or future needs..."
+              rows={3}
+              className="mt-1"
+              required
+            />
+          </div>
+        )}
+
          <div>
           <Label htmlFor="researchDocument" className="text-base font-medium flex items-center gap-1">
             <FileText className="h-4 w-4" />
@@ -124,7 +174,7 @@ export default function OptimizerClient() {
           <Input
             id="researchDocument"
             type="file"
-            accept=".pdf,.txt,.md,.docx" // Added docx
+            accept=".pdf,.txt,.md,.docx"
             onChange={handleFileChange}
             className="mt-1"
           />
