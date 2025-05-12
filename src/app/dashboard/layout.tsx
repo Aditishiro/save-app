@@ -6,7 +6,7 @@ import {
   ClipboardList,
   Settings,
   Share2,
-  Bot,
+  Bot, // Added Bot icon back
   UserCircle,
   LogOut,
   Search,
@@ -33,7 +33,7 @@ const navItems = [
   { href: '/dashboard/my-forms', label: 'My Forms', icon: LayoutGrid },
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
-  { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot },
+  { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot }, // Added AI Optimizer link back
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
