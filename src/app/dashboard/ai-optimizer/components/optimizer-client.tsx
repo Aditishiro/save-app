@@ -1,4 +1,3 @@
-tsx
 'use client';
 
 import { useState } from 'react';
@@ -129,7 +128,7 @@ export default function OptimizerClient() {
           />
           <p className="text-xs text-muted-foreground mt-1">Enter the JSON representation of your form.</p>
         </div>
-        
+
         <div>
           <Label htmlFor="intendedUseCaseSelect" className="text-base font-medium">Intended Use Case & Future Needs</Label>
           <Select
