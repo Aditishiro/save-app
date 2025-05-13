@@ -4,12 +4,18 @@
  * incorporates market research, and proposes a future state for the form.
  *
  * - generateFormAnalysisReport - A function that handles the form analysis and reporting process.
- * - FormAnalysisReportInput - The input type for the function.
- * - FormAnalysisReportOutput - The return type for the function.
+ * - FormAnalysisReportInput - The input type for the function (imported from types file).
+ * - FormAnalysisReportOutput - The return type for the function (imported from types file).
  */
 
 import {ai} from '@/ai/genkit';
 import {z}  from 'genkit';
+import {
+  FormAnalysisReportInputSchema,
+  type FormAnalysisReportInput,
+  FormAnalysisReportOutputSchema,
+  type FormAnalysisReportOutput
+} from './form-analysis-report-types';
 
 // Re-using the best practices tool from ai-form-optimizer
 const GetFormDesignBestPracticesInputSchema = z.object({
@@ -94,43 +100,7 @@ const fetchMarketResearchTool = ai.defineTool(
   }
 );
 
-
-export const FormAnalysisReportInputSchema = z.object({
-  formId: z.string().describe("The unique identifier of the form being analyzed."),
-  formTitle: z.string().describe("The title or name of the form."),
-  formConfiguration: z.string().describe('The JSON configuration of the form to be analyzed.'),
-  intendedUseCase: z.string().describe('The intended use case of the form, including context about its users and objectives.'),
-  currentProblems: z.string().optional().describe("Optional: User-described current problems or pain points with the form."),
-});
-export type FormAnalysisReportInput = z.infer<typeof FormAnalysisReportInputSchema>;
-
-export const FormAnalysisReportOutputSchema = z.object({
-  formId: z.string().describe("The ID of the analyzed form."),
-  formTitle: z.string().describe("The title of the analyzed form."),
-  currentLogicAnalysis: z.string().describe("Analysis of the form's current logic, field structure, flow, and apparent purpose based on its configuration and use case."),
-  identifiedProblemsAndPainPoints: z.array(z.object({
-    problem: z.string().describe("A specific problem, pain point, or area of inefficiency identified in the form."),
-    severity: z.enum(["Low", "Medium", "High"]).describe("The estimated severity or impact of the problem."),
-    impactArea: z.string().describe("The primary area impacted by this problem (e.g., User Experience, Data Quality, Completion Rate, Compliance, Operational Efficiency).")
-  })).describe("List of identified problems and pain points with their severity and impact area."),
-  errorFixSuggestions: z.array(z.object({
-    problemDescription: z.string().optional().describe("Brief description of the problem this suggestion addresses, if linked to one from 'identifiedProblemsAndPainPoints'."),
-    suggestion: z.string().describe("A specific, actionable suggestion to fix an error, address a problem, or improve a problematic aspect of the form."),
-    rationale: z.string().describe("Reasoning behind why this fix is recommended and how it solves the issue."),
-  })).describe("Suggestions for fixing identified errors or addressing specific problems."),
-  upliftAndEnhancementSuggestions: z.array(z.object({
-    suggestion: z.string().describe("A suggestion for uplifting the form or enhancing its functionality/UX beyond basic error fixing."),
-    benefit: z.string().describe("The expected benefit of implementing this uplift (e.g., improved user satisfaction, higher data accuracy, faster completion)."),
-    effortLevel: z.enum(["Low", "Medium", "High"]).optional().describe("Estimated effort level (Low, Medium, High) to implement this suggestion."),
-  })).describe("Suggestions for general improvements and enhancements to the form."),
-  marketResearchSummary: z.string().describe("A summary of relevant market research insights, competitor activities, and emerging trends pertinent to the form's domain and use case. This should be informed by using the 'fetchMarketResearch' tool."),
-  futureStateVision: z.object({
-    concept: z.string().describe("A conceptual description of a potential future state for the form, considering market trends, best practices, and technological advancements. This should aim to make the form more effective, user-friendly, and strategically aligned."),
-    keyChanges: z.array(z.string()).describe("List of key changes, new features, or structural redesigns proposed for this future state."),
-    strategicAlignment: z.string().describe("Explanation of how this proposed future state aligns with broader business objectives, such as improving customer experience, increasing efficiency, meeting future regulatory needs, or entering new markets."),
-  }).describe("A vision for the future state of the form, including key proposed changes and strategic alignment."),
-});
-export type FormAnalysisReportOutput = z.infer<typeof FormAnalysisReportOutputSchema>;
+// Schemas and types are now imported from ./form-analysis-report-types
 
 export async function generateFormAnalysisReport(input: FormAnalysisReportInput): Promise<FormAnalysisReportOutput> {
   return formAnalysisReportFlow(input);
@@ -198,7 +168,7 @@ const formAnalysisReportFlow = ai.defineFlow(
     inputSchema: FormAnalysisReportInputSchema,
     outputSchema: FormAnalysisReportOutputSchema,
   },
-  async (input) => {
+  async (input: FormAnalysisReportInput): Promise<FormAnalysisReportOutput> => {
     const {output} = await formAnalysisPrompt(input);
     if (!output) {
       throw new Error("AI failed to generate an analysis report.");

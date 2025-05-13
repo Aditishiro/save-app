@@ -8,7 +8,8 @@ import { Loader2, Lightbulb, AlertTriangle, FileText, BarChartBig, Sparkles, Mic
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { generateFormAnalysisReport, type FormAnalysisReportInput, type FormAnalysisReportOutput } from '@/ai/flows/form-analysis-report-flow';
+import { generateFormAnalysisReport } from '@/ai/flows/form-analysis-report-flow';
+import type { FormAnalysisReportInput, FormAnalysisReportOutput } from '@/ai/flows/form-analysis-report-types';
 import { MOCK_FORM_STORE_ANALYTICS, type MockFormAnalyticsData } from './mock-form-data'; // Using a dedicated mock store
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -188,7 +189,7 @@ export default function AnalyticsClient() {
                       <li key={index} className="bg-background p-4 rounded-md shadow border border-yellow-500/20">
                         <p className="font-medium">{item.suggestion}</p>
                         <p className="text-sm text-muted-foreground mt-1">{item.rationale}</p>
-                        {item.problemId && <p className="text-xs text-blue-500 mt-1">Addresses problem ID: {item.problemId}</p>}
+                        {item.problemDescription && <p className="text-xs text-blue-500 mt-1">Addresses: {item.problemDescription}</p>}
                       </li>
                     ))}
                   </ul>
