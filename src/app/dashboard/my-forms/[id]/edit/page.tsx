@@ -21,17 +21,46 @@ import Link from 'next/link';
 
 type FieldConfig = FormFieldData;
 
-// Mock form data store - replace with actual data fetching logic
-const MOCK_FORM_STORE: Record<string, { id: string, title: string, fields: FieldConfig[], versions?: { version: string, date: string, status: string }[] }> = {
+// Updated Mock form data store
+interface MockFormDetail {
+  id: string;
+  title: string;
+  fields: FieldConfig[];
+  formConfiguration: string; // JSON string of fields
+  intendedUseCase: string; // Description of use case
+  versions?: { version: string, date: string, status: string }[];
+}
+
+const clientOnboardingFields: FieldConfig[] = [
+  { id: 'field_1', type: 'text', label: 'Full Name', placeholder: 'Enter full name', required: true, validationState: 'default' },
+  { id: 'field_2', type: 'number', label: 'Age', placeholder: 'Enter age', required: false, validationState: 'validated' },
+  { id: 'field_3', type: 'header', label: 'Contact Information', validationState: 'default' },
+  { id: 'field_4', type: 'dropdown', label: 'Country', options: ['USA', 'Canada', 'UK'], required: true, validationState: 'default' },
+];
+
+const loanApplicationFields: FieldConfig[] = [
+  { id: 'field_loan_1', type: 'header', label: 'Personal Information' },
+  { id: 'field_loan_2', type: 'text', label: 'Applicant Name', required: true },
+  { id: 'field_loan_3', type: 'date', label: 'Date of Birth', required: true },
+  { id: 'field_loan_4', type: 'header', label: 'Loan Details' },
+  { id: 'field_loan_5', type: 'number', label: 'Loan Amount Requested', placeholder: '$', required: true },
+  { id: 'field_loan_6', type: 'textarea', label: 'Purpose of Loan', required: true },
+];
+
+const feedbackSurveyFields: FieldConfig[] = [
+   { id: 'field_fb_1', type: 'header', label: 'Your Experience' },
+   { id: 'field_fb_2', type: 'dropdown', label: 'Overall Satisfaction', options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'], required: true },
+   { id: 'field_fb_3', type: 'textarea', label: 'Comments/Suggestions' },
+];
+
+
+const MOCK_FORM_STORE: Record<string, MockFormDetail> = {
   '1': {
     id: '1',
     title: 'Client Onboarding Form (Editing)',
-    fields: [
-      { id: 'field_1', type: 'text', label: 'Full Name', placeholder: 'Enter full name', required: true, validationState: 'default' },
-      { id: 'field_2', type: 'number', label: 'Age', placeholder: 'Enter age', required: false, validationState: 'validated' },
-      { id: 'field_3', type: 'header', label: 'Contact Information', validationState: 'default' },
-      { id: 'field_4', type: 'dropdown', label: 'Country', options: ['USA', 'Canada', 'UK'], required: true, validationState: 'default' },
-    ],
+    fields: clientOnboardingFields,
+    formConfiguration: JSON.stringify({ fields: clientOnboardingFields }),
+    intendedUseCase: 'Client Onboarding (Validation, multi-step)',
     versions: [
       { version: '1.1', date: 'Current Draft', status: 'Draft' },
       { version: '1.0', date: '2024-07-28', status: 'Published' },
@@ -40,15 +69,10 @@ const MOCK_FORM_STORE: Record<string, { id: string, title: string, fields: Field
   '2': {
     id: '2',
     title: 'Loan Application - V3 (Editing)',
-    fields: [
-      { id: 'field_loan_1', type: 'header', label: 'Personal Information' },
-      { id: 'field_loan_2', type: 'text', label: 'Applicant Name', required: true },
-      { id: 'field_loan_3', type: 'date', label: 'Date of Birth', required: true },
-      { id: 'field_loan_4', type: 'header', label: 'Loan Details' },
-      { id: 'field_loan_5', type: 'number', label: 'Loan Amount Requested', placeholder: '$', required: true },
-      { id: 'field_loan_6', type: 'textarea', label: 'Purpose of Loan', required: true },
-    ],
-     versions: [
+    fields: loanApplicationFields,
+    formConfiguration: JSON.stringify({ fields: loanApplicationFields }),
+    intendedUseCase: 'Financial Application (Security, compliance)',
+    versions: [
       { version: '3.0', date: 'Current Draft', status: 'Draft' },
       { version: '2.1', date: '2024-07-20', status: 'Archived' },
       { version: '2.0', date: '2024-07-10', status: 'Archived' },
@@ -57,16 +81,13 @@ const MOCK_FORM_STORE: Record<string, { id: string, title: string, fields: Field
   '3': {
     id: '3',
     title: 'Customer Feedback Survey Q3 (Editing)',
-    fields: [
-       { id: 'field_fb_1', type: 'header', label: 'Your Experience' },
-       { id: 'field_fb_2', type: 'dropdown', label: 'Overall Satisfaction', options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'], required: true },
-       { id: 'field_fb_3', type: 'textarea', label: 'Comments/Suggestions' },
-    ],
-     versions: [
+    fields: feedbackSurveyFields,
+    formConfiguration: JSON.stringify({ fields: feedbackSurveyFields }),
+    intendedUseCase: 'Standard Data Collection (e.g., Contact Form, Basic Survey)',
+    versions: [
       { version: '1.0', date: '2024-07-15', status: 'Published' },
     ]
   },
-  // Form '4' (Internal IT Request) is intentionally left out to test 'Not Found'
 };
 
 
@@ -78,31 +99,39 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Store current formConfiguration for saving
+  const [currentFormConfiguration, setCurrentFormConfiguration] = useState<string>('');
+
 
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    // Simulate fetching form data based on params.id
     const fetchedForm = MOCK_FORM_STORE[params.id];
     
-    // Simulate API delay
     const timer = setTimeout(() => {
       if (fetchedForm) {
         setFormTitle(fetchedForm.title);
         setFormFields(fetchedForm.fields);
+        setCurrentFormConfiguration(fetchedForm.formConfiguration);
         setFormVersions(fetchedForm.versions || []);
       } else {
         setFormTitle("Form Not Found");
         setFormFields([]);
         setFormVersions([]);
+        setCurrentFormConfiguration('');
         setError(`Form with ID "${params.id}" could not be found.`);
       }
       setIsLoading(false);
-    }, 500); // 500ms delay
+    }, 500); 
 
-    return () => clearTimeout(timer); // Cleanup timer on unmount
+    return () => clearTimeout(timer);
 
   }, [params.id]);
+
+  // Update formConfiguration whenever formFields change
+  useEffect(() => {
+    setCurrentFormConfiguration(JSON.stringify({ fields: formFields }));
+  }, [formFields]);
 
 
   const handleAddField = useCallback((fieldType: string) => {
@@ -129,7 +158,6 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
         field.id === fieldId ? { ...field, ...updates } : field
       )
     );
-    // In a real app, you might mark the form as dirty/unsaved here
   }, []);
   
   const handleDeleteField = useCallback((fieldId: string) => {
@@ -137,7 +165,6 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
     if (selectedFieldId === fieldId) {
       setSelectedFieldId(null);
     }
-    // Mark as dirty/unsaved
   }, [selectedFieldId]);
 
   const selectedFieldConfig = formFields.find(f => f.id === selectedFieldId) || null;
@@ -150,6 +177,19 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
       onClick={(id) => !isPreviewMode && handleSelectField(id)}
     />
   ));
+
+  const handleSaveChanges = () => {
+    // In a real app, this would send `currentFormConfiguration` and other form details (title, etc.) to a backend.
+    console.log("Saving form:", params.id, formTitle, currentFormConfiguration);
+    // For mock purposes, update the MOCK_FORM_STORE if desired, or just log
+    if (MOCK_FORM_STORE[params.id]) {
+        MOCK_FORM_STORE[params.id].title = formTitle; // Assuming title could be editable, not shown in UI yet
+        MOCK_FORM_STORE[params.id].fields = formFields;
+        MOCK_FORM_STORE[params.id].formConfiguration = currentFormConfiguration;
+        // Potentially update lastModified date etc.
+    }
+    alert("Changes saved (mock)!");
+  };
 
   if (isLoading) {
      return (
@@ -172,7 +212,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]"> {/* Adjust height based on header/footer */}
+    <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
       <PageHeader
         title={formTitle}
         description={`Editing form ID: ${params.id}. Design and configure your form.`}
@@ -183,7 +223,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
               <Label htmlFor="preview-mode">Preview Mode</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button variant="secondary" size="sm"> 
+            <Button variant="secondary" size="sm" onClick={handleSaveChanges}> 
               <Save className="mr-2 h-4 w-4" /> Save Changes
             </Button>
             <Button size="sm">
@@ -192,13 +232,13 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
-                  <HistoryIcon className="mr-2 h-4 w-4" /> Version History
+                  <HistoryIcon className="mr-2 h-4 w-4" /> Version History ({formVersions.length})
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {formVersions.length > 0 ? (
                    formVersions.map(v => (
-                     <DropdownMenuItem key={v.version} disabled={v.status !== 'Published' && v.status !== 'Archived' /* Allow reverting to published/archived only */ }>
+                     <DropdownMenuItem key={v.version} disabled={v.status !== 'Published' && v.status !== 'Archived'}>
                       Version {v.version} ({v.date}) {v.status !== 'Draft' && `(${v.status})`}
                      </DropdownMenuItem>
                    ))
