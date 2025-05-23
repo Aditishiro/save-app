@@ -1,3 +1,4 @@
+
 // src/lib/firebase/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
@@ -23,12 +24,24 @@ db = getFirestore(app);
 
 if (typeof window !== 'undefined') {
   // Initialize Performance and Analytics only on the client side
-  performance = getPerformance(app);
+  try {
+    performance = getPerformance(app);
+  } catch (e) {
+    console.warn("Firebase Performance Monitoring could not be initialized:", e);
+  }
   
   isAnalyticsSupported().then((supported) => {
     if (supported) {
-      analytics = getAnalytics(app);
+      try {
+        analytics = getAnalytics(app);
+      } catch (e) {
+        console.warn("Firebase Analytics (Crashlytics for web) could not be initialized:", e);
+      }
+    } else {
+      console.warn("Firebase Analytics is not supported in this environment.");
     }
+  }).catch(e => {
+    console.warn("Error checking Firebase Analytics support:", e);
   });
 }
 
