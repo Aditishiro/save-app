@@ -278,7 +278,7 @@ export default function EditFormPage() {
           <div className="flex items-center gap-2">
             <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isSaving}>
+                <Button data-testid="edit-form-settings-button" variant="outline" size="sm" disabled={isSaving}>
                   <Settings className="mr-2 h-4 w-4" /> Form Settings
                 </Button>
               </DialogTrigger>
@@ -329,20 +329,20 @@ export default function EditFormPage() {
               <Label htmlFor="preview-mode">Preview</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button variant="secondary" size="sm" onClick={() => handleSaveChanges()} disabled={isSaving}>
+            <Button data-testid="edit-form-save-button" variant="secondary" size="sm" onClick={() => handleSaveChanges()} disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
             </Button>
             {currentStatus !== 'Published' && (
-                 <Button size="sm" onClick={() => handleSaveChanges('Published')} disabled={isSaving}>
+                 <Button data-testid="edit-form-publish-button" size="sm" onClick={() => handleSaveChanges('Published')} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />} Publish
                 </Button>
             )}
             {currentStatus === 'Published' && (
-                 <Button variant="outline" size="sm" onClick={() => handleSaveChanges('Draft')} disabled={isSaving}>
+                 <Button data-testid="edit-form-revert-draft-button" variant="outline" size="sm" onClick={() => handleSaveChanges('Draft')} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />} Revert to Draft
                 </Button>
             )}
-             <Button variant="ghost" size="sm" asChild>
+             <Button data-testid="edit-form-live-preview-button" variant="ghost" size="sm" asChild>
                 <Link href={`/dashboard/my-forms/${formId}/preview`} target="_blank">
                   <Eye className="mr-2 h-4 w-4" /> Live Preview
                 </Link>
@@ -351,7 +351,7 @@ export default function EditFormPage() {
         }
       />
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0"> {/* flex-1 makes this take remaining space */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0"> 
         {!isPreviewMode && (
           <div className="md:col-span-3 min-h-0 flex flex-col">
             <FieldPalette onAddField={handleAddField} />
@@ -375,4 +375,3 @@ export default function EditFormPage() {
     </div>
   );
 }
-

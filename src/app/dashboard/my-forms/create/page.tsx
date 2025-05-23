@@ -144,11 +144,22 @@ export default function CreateFormPage() {
               <Label htmlFor="preview-mode">Preview Mode</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button variant="secondary" size="sm" onClick={() => handleSaveForm('Draft')} disabled={isSaving}>
+            <Button 
+              data-testid="create-form-save-draft-button"
+              variant="secondary" 
+              size="sm" 
+              onClick={() => handleSaveForm('Draft')} 
+              disabled={isSaving}
+            >
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Draft
             </Button>
-            <Button size="sm" onClick={() => handleSaveForm('Published')} disabled={isSaving}>
+            <Button 
+              data-testid="create-form-publish-button"
+              size="sm" 
+              onClick={() => handleSaveForm('Published')} 
+              disabled={isSaving}
+            >
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Publish
             </Button>

@@ -43,12 +43,6 @@ export default function LoginPage() {
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         // Removed the emailVerified check to allow sign-in without verification
-        // if (!userCredential.user.emailVerified) {
-        //   setError("Please verify your email before signing in. Another verification email has been sent.");
-        //   await sendEmailVerification(userCredential.user);
-        //   setIsLoading(false);
-        //   return;
-        // }
         router.push('/dashboard/my-forms');
       }
     } catch (authError: any) {
@@ -110,6 +104,7 @@ export default function LoginPage() {
       if (resetError.code === 'auth/invalid-email') {
         friendlyMessage = "The email address provided for password reset is not valid.";
       } else if (resetError.code === 'auth/user-not-found') {
+         // To prevent user enumeration, show a generic message even if user is not found.
          toast({
           title: "Password Reset Email Sent",
           description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
@@ -117,7 +112,7 @@ export default function LoginPage() {
         setShowPasswordReset(false); 
         setResetEmail('');
       } else {
-        setError(friendlyMessage);
+         setError(friendlyMessage);
       }
     } finally {
       setIsLoading(false);
@@ -163,6 +158,7 @@ export default function LoginPage() {
                   <Label htmlFor="reset-email">Email address</Label>
                   <Input
                     id="reset-email"
+                    data-testid="reset-email-input"
                     name="reset-email"
                     type="email"
                     autoComplete="email"
@@ -175,7 +171,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div>
-                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  <Button data-testid="send-reset-link-button" type="submit" className="w-full" size="lg" disabled={isLoading}>
                     {isLoading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -185,7 +181,7 @@ export default function LoginPage() {
                 </div>
                  <p className="mt-8 text-center text-sm text-muted-foreground">
                   Remembered your password?{" "}
-                  <Button variant="link" onClick={() => { setShowPasswordReset(false); setError(null); }} className="font-medium text-primary hover:text-primary/90 p-0 h-auto">
+                  <Button data-testid="back-to-signin-button" variant="link" onClick={() => { setShowPasswordReset(false); setError(null); }} className="font-medium text-primary hover:text-primary/90 p-0 h-auto">
                     Back to Sign In
                   </Button>
                 </p>
@@ -196,6 +192,7 @@ export default function LoginPage() {
                   <Label htmlFor="email">Email address</Label>
                   <Input
                     id="email"
+                    data-testid="email-input"
                     name="email"
                     type="email"
                     autoComplete="email"
@@ -214,6 +211,7 @@ export default function LoginPage() {
                     {!isSignUp && (
                       <div className="text-sm">
                         <Button 
+                          data-testid="forgot-password-button"
                           type="button" 
                           variant="link" 
                           onClick={() => { setShowPasswordReset(true); setError(null); }} 
@@ -226,6 +224,7 @@ export default function LoginPage() {
                   </div>
                   <Input
                     id="password"
+                    data-testid="password-input"
                     name="password"
                     type="password"
                     autoComplete={isSignUp ? "new-password" : "current-password"}
@@ -239,7 +238,7 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  <Button data-testid="auth-action-button" type="submit" className="w-full" size="lg" disabled={isLoading}>
                     {isLoading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -254,6 +253,7 @@ export default function LoginPage() {
               <p className="mt-8 text-center text-sm text-muted-foreground">
                 {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
                 <Button 
+                  data-testid="toggle-signup-signin-button"
                   variant="link" 
                   onClick={() => { setIsSignUp(!isSignUp); setError(null); }} 
                   className="font-medium text-primary hover:text-primary/90 p-0 h-auto"
@@ -271,4 +271,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
