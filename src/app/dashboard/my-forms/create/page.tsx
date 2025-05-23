@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea'; 
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 type FieldConfig = FormFieldData;
@@ -106,10 +106,10 @@ export default function CreateFormPage() {
         formConfiguration: formConfiguration,
         status: status,
         submissionsCount: 0,
-        createdAt: serverTimestamp(),
-        lastModified: serverTimestamp(),
-        isPublic: false, // Default new forms to private
-        tags: [], // Default to empty tags array
+        createdAt: serverTimestamp() as Timestamp,
+        lastModified: serverTimestamp() as Timestamp,
+        isPublic: false, 
+        tags: [], 
       });
       toast({
         title: `Form ${status === 'Draft' ? 'Saved as Draft' : 'Published'}`,
@@ -152,63 +152,67 @@ export default function CreateFormPage() {
         }
       />
 
-      <div className="p-6 space-y-4 border-b">
-        <div>
-          <Label htmlFor="formTitle">Form Title</Label>
-          <Input
-            id="formTitle"
-            value={formTitle}
-            onChange={(e) => setFormTitle(e.target.value)}
-            placeholder="e.g., Client Onboarding"
-            className="mt-1 text-lg font-semibold"
-            disabled={isSaving}
-          />
-        </div>
-        <div>
-          <Label htmlFor="formDescription">Form Description (Optional)</Label>
-          <Textarea
-            id="formDescription"
-            value={formDescription}
-            onChange={(e) => setFormDescription(e.target.value)}
-            placeholder="A brief description of what this form is for."
-            rows={2}
-            className="mt-1"
-            disabled={isSaving}
-          />
-        </div>
-         <div>
-          <Label htmlFor="intendedUseCase">Intended Use Case</Label>
-          <Input
-            id="intendedUseCase"
-            value={intendedUseCase}
-            onChange={(e) => setIntendedUseCase(e.target.value)}
-            placeholder="e.g., New client data collection for KYC"
-            className="mt-1"
-            disabled={isSaving}
-          />
-        </div>
-      </div>
-
-      <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
-        {!isPreviewMode && (
-          <div className="md:col-span-3 min-h-0">
-            <FieldPalette onAddField={handleAddField} />
-          </div>
-        )}
-
-        <div className={isPreviewMode ? "md:col-span-12 min-h-0" : "md:col-span-6 min-h-0"}>
-          <FormCanvas fields={renderedFields} onSelectField={handleSelectField} />
-        </div>
-
-        {!isPreviewMode && (
-          <div className="md:col-span-3 min-h-0">
-            <PropertiesPanel
-              selectedField={selectedFieldConfig}
-              onUpdateField={handleUpdateField}
-              onDeleteField={handleDeleteField}
+      {/* Scrollable content area below PageHeader */}
+      <div className="flex-1 flex flex-col overflow-y-auto min-h-0">
+        <div className="p-6 space-y-4 border-b">
+          <div>
+            <Label htmlFor="formTitle">Form Title</Label>
+            <Input
+              id="formTitle"
+              value={formTitle}
+              onChange={(e) => setFormTitle(e.target.value)}
+              placeholder="e.g., Client Onboarding"
+              className="mt-1 text-lg font-semibold"
+              disabled={isSaving}
             />
           </div>
-        )}
+          <div>
+            <Label htmlFor="formDescription">Form Description (Optional)</Label>
+            <Textarea
+              id="formDescription"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="A brief description of what this form is for."
+              rows={2}
+              className="mt-1"
+              disabled={isSaving}
+            />
+          </div>
+          <div>
+            <Label htmlFor="intendedUseCase">Intended Use Case</Label>
+            <Textarea // Changed from Input to Textarea
+              id="intendedUseCase"
+              value={intendedUseCase}
+              onChange={(e) => setIntendedUseCase(e.target.value)}
+              placeholder="e.g., New client data collection for KYC, internal feedback survey, loan pre-qualification..."
+              rows={3} // Added rows prop for better default height
+              className="mt-1"
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
+          {!isPreviewMode && (
+            <div className="md:col-span-3 min-h-0">
+              <FieldPalette onAddField={handleAddField} />
+            </div>
+          )}
+
+          <div className={isPreviewMode ? "md:col-span-12 min-h-0" : "md:col-span-6 min-h-0"}>
+            <FormCanvas fields={renderedFields} onSelectField={handleSelectField} />
+          </div>
+
+          {!isPreviewMode && (
+            <div className="md:col-span-3 min-h-0">
+              <PropertiesPanel
+                selectedField={selectedFieldConfig}
+                onUpdateField={handleUpdateField}
+                onDeleteField={handleDeleteField}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
