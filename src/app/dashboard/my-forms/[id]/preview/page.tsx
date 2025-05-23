@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation'; // Import useParams
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,7 +66,10 @@ const MOCK_FORM_PREVIEW_STORE: Record<string, MockFormPreview> = {
 };
 
 
-export default function FormPreviewPage({ params }: { params: { id: string } }) {
+export default function FormPreviewPage() { // Removed params from props
+  const params = useParams<{ id: string }>(); // Use the hook
+  const formId = params.id; // Extract id
+
   const [formConfig, setFormConfig] = useState<MockFormPreview | null>(null);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -73,10 +78,12 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
 
 
   useEffect(() => {
+    if (!formId) return;
+
     setIsLoading(true);
     setError(null);
     // Simulate fetching form configuration
-    const fetchedForm = MOCK_FORM_PREVIEW_STORE[params.id];
+    const fetchedForm = MOCK_FORM_PREVIEW_STORE[formId];
     
     const timer = setTimeout(() => {
       if (fetchedForm) {
@@ -95,14 +102,14 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
         });
         setFormValues(initialValues);
       } else {
-        setError(`Form preview for ID "${params.id}" could not be found.`);
+        setError(`Form preview for ID "${formId}" could not be found.`);
       }
       setIsLoading(false);
     }, 500); // Simulate delay
 
     return () => clearTimeout(timer);
 
-  }, [params.id]);
+  }, [formId]); // Use formId in dependency array
 
   const handleChange = (fieldId: string, value: any, type?: string) => {
     setFormValues(prev => ({ ...prev, [fieldId]: type === 'checkbox' ? (value as boolean) : value }));
@@ -178,7 +185,7 @@ export default function FormPreviewPage({ params }: { params: { id: string } }) 
         description="This is how your form will appear to end-users."
         actions={
           <Button variant="outline" asChild>
-            <Link href={`/dashboard/my-forms/${params.id}/edit`}>
+            <Link href={`/dashboard/my-forms/${formId}/edit`}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
             </Link>
           </Button>

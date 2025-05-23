@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useParams } from 'next/navigation'; // Import useParams
 import { Button } from '@/components/ui/button';
 import { FieldPalette } from '@/components/form-builder/field-palette';
 import { FormCanvas } from '@/components/form-builder/form-canvas';
@@ -91,7 +93,10 @@ const MOCK_FORM_STORE: Record<string, MockFormDetail> = {
 };
 
 
-export default function EditFormPage({ params }: { params: { id: string } }) {
+export default function EditFormPage() { // Removed params from props
+  const params = useParams<{ id: string }>(); // Use the hook
+  const formId = params.id; // Extract id
+
   const [formFields, setFormFields] = useState<FieldConfig[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [formTitle, setFormTitle] = useState<string>("Loading form...");
@@ -104,9 +109,11 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
 
 
   useEffect(() => {
+    if (!formId) return; // Guard if formId is not yet available (though useParams should provide it sync)
+
     setIsLoading(true);
     setError(null);
-    const fetchedForm = MOCK_FORM_STORE[params.id];
+    const fetchedForm = MOCK_FORM_STORE[formId];
     
     const timer = setTimeout(() => {
       if (fetchedForm) {
@@ -119,14 +126,14 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
         setFormFields([]);
         setFormVersions([]);
         setCurrentFormConfiguration('');
-        setError(`Form with ID "${params.id}" could not be found.`);
+        setError(`Form with ID "${formId}" could not be found.`);
       }
       setIsLoading(false);
     }, 500); 
 
     return () => clearTimeout(timer);
 
-  }, [params.id]);
+  }, [formId]); // Use formId from the hook in dependency array
 
   // Update formConfiguration whenever formFields change
   useEffect(() => {
@@ -180,12 +187,12 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
 
   const handleSaveChanges = () => {
     // In a real app, this would send `currentFormConfiguration` and other form details (title, etc.) to a backend.
-    console.log("Saving form:", params.id, formTitle, currentFormConfiguration);
+    console.log("Saving form:", formId, formTitle, currentFormConfiguration);
     // For mock purposes, update the MOCK_FORM_STORE if desired, or just log
-    if (MOCK_FORM_STORE[params.id]) {
-        MOCK_FORM_STORE[params.id].title = formTitle; // Assuming title could be editable, not shown in UI yet
-        MOCK_FORM_STORE[params.id].fields = formFields;
-        MOCK_FORM_STORE[params.id].formConfiguration = currentFormConfiguration;
+    if (MOCK_FORM_STORE[formId]) {
+        MOCK_FORM_STORE[formId].title = formTitle; // Assuming title could be editable, not shown in UI yet
+        MOCK_FORM_STORE[formId].fields = formFields;
+        MOCK_FORM_STORE[formId].formConfiguration = currentFormConfiguration;
         // Potentially update lastModified date etc.
     }
     alert("Changes saved (mock)!");
@@ -215,7 +222,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
     <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
       <PageHeader
         title={formTitle}
-        description={`Editing form ID: ${params.id}. Design and configure your form.`}
+        description={`Editing form ID: ${formId}. Design and configure your form.`}
         actions={
           <div className="flex items-center gap-2">
             <div className="flex items-center space-x-2">
