@@ -9,12 +9,12 @@ import { FormCanvas } from '@/components/form-builder/form-canvas';
 import { PropertiesPanel } from '@/components/form-builder/properties-panel';
 import { FormFieldData, FormFieldDisplay } from '@/components/form-builder/form-field-display';
 import { PageHeader } from '@/components/common/page-header';
-import { Save, Send, Eye, History as HistoryIcon, Loader2 } from 'lucide-react';
+import { Save, Send, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input'; // Added Input
-import { Textarea } from '@/components/ui/textarea'; // Added Textarea
+import { Input } from '@/components/ui/input'; 
+import { Textarea } from '@/components/ui/textarea'; 
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -108,13 +108,14 @@ export default function CreateFormPage() {
         submissionsCount: 0,
         createdAt: serverTimestamp(),
         lastModified: serverTimestamp(),
-        isPublic: false, // Default to private
+        isPublic: false, // Default new forms to private
+        tags: [], // Default to empty tags array
       });
       toast({
         title: `Form ${status === 'Draft' ? 'Saved as Draft' : 'Published'}`,
         description: `Your form "${formTitle}" has been successfully ${status === 'Draft' ? 'saved' : 'published'}.`,
       });
-      router.push(`/dashboard/my-forms/${docRef.id}/edit`); // Redirect to edit page of the new form
+      router.push(`/dashboard/my-forms/${docRef.id}/edit`); 
     } catch (error) {
       console.error("Error saving form: ", error);
       toast({

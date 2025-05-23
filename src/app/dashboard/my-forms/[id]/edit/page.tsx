@@ -9,7 +9,7 @@ import { FormCanvas } from '@/components/form-builder/form-canvas';
 import { PropertiesPanel } from '@/components/form-builder/properties-panel';
 import { FormFieldData, FormFieldDisplay } from '@/components/form-builder/form-field-display';
 import { PageHeader } from '@/components/common/page-header';
-import { Save, Send, Eye, History as HistoryIcon, Loader2, AlertTriangle, Settings } from 'lucide-react';
+import { Save, Send, Eye, History as HistoryIcon, Loader2, Settings, Tags, Globe } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -20,11 +20,10 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { FormDocument } from '../page'; // Assuming FormDocument is exported from parent page
+import { FormDocument } from '../page'; 
 
 type FieldConfig = FormFieldData;
 
-// For Form Settings Dialog
 import {
   Dialog,
   DialogContent,
@@ -34,19 +33,12 @@ import {
   DialogFooter,
   DialogTrigger,
   DialogClose,
-} from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/dialog";
 
 
 export default function EditFormPage() {
-  const params = useParams<{ id: string }>();
-  const formId = params.id;
+  const params = useParams();
+  const formId = params.id as string; // Type assertion
   const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -58,6 +50,8 @@ export default function EditFormPage() {
   const [formDescription, setFormDescription] = useState<string>("");
   const [intendedUseCase, setIntendedUseCase] = useState<string>("");
   const [currentStatus, setCurrentStatus] = useState<'Draft' | 'Published' | 'Archived'>('Draft');
+  const [isPublic, setIsPublic] = useState<boolean>(false);
+  const [tags, setTags] = useState<string[]>([]);
   
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -68,11 +62,13 @@ export default function EditFormPage() {
   const [tempTitle, setTempTitle] = useState("");
   const [tempDescription, setTempDescription] = useState("");
   const [tempIntendedUseCase, setTempIntendedUseCase] = useState("");
+  const [tempIsPublic, setTempIsPublic] = useState<boolean>(false);
+  const [tempTagsString, setTempTagsString] = useState<string>("");
 
 
   useEffect(() => {
     if (!formId || !currentUser) {
-        if (!formId) router.push('/dashboard/my-forms'); // or show error
+        if (!formId) router.push('/dashboard/my-forms'); 
         return;
     };
 
@@ -94,10 +90,15 @@ export default function EditFormPage() {
           setFormDescription(formData.description || "");
           setIntendedUseCase(formData.intendedUseCase || "");
           setCurrentStatus(formData.status);
+          setIsPublic(formData.isPublic || false);
+          setTags(formData.tags || []);
 
           setTempTitle(formData.title);
           setTempDescription(formData.description || "");
           setTempIntendedUseCase(formData.intendedUseCase || "");
+          setTempIsPublic(formData.isPublic || false);
+          setTempTagsString((formData.tags || []).join(', '));
+
 
           try {
             const parsedConfig = JSON.parse(formData.formConfiguration);
@@ -185,12 +186,16 @@ export default function EditFormPage() {
     const formConfiguration = JSON.stringify({ fields: formFields });
     const formDocRef = doc(db, 'forms', formId);
 
+    const currentTags = tempTagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+
     const updateData: Partial<FormDocument> = {
-      title: formTitle,
+      title: formTitle, // Use the main state version for title, desc, usecase for direct saves
       description: formDescription,
       intendedUseCase: intendedUseCase,
       formConfiguration: formConfiguration,
       lastModified: serverTimestamp() as Timestamp,
+      isPublic: isPublic, // Use the main state version here
+      tags: tags, // Use the main state version here
     };
 
     if (newStatus) {
@@ -200,6 +205,10 @@ export default function EditFormPage() {
     try {
       await updateDoc(formDocRef, updateData);
       if (newStatus) setCurrentStatus(newStatus);
+      // Update main state if changes were from dialog, for non-status saves
+      setTags(currentTags); 
+      setIsPublic(tempIsPublic);
+
       toast({
         title: "Changes Saved",
         description: `Form "${formTitle}" has been updated. ${newStatus ? `Status set to ${newStatus}.` : ''}`,
@@ -228,8 +237,10 @@ export default function EditFormPage() {
     setFormTitle(tempTitle);
     setFormDescription(tempDescription);
     setIntendedUseCase(tempIntendedUseCase);
+    setIsPublic(tempIsPublic);
+    setTags(tempTagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== ''));
+    
     setIsSettingsDialogOpen(false);
-    // Immediately save these settings to Firestore
     handleSaveChanges(); 
   };
 
@@ -262,7 +273,7 @@ export default function EditFormPage() {
     <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
       <PageHeader
         title={`Edit: ${pageTitle}`}
-        description={`Form ID: ${formId}. Current Status: ${currentStatus}`}
+        description={`Form ID: ${formId}. Current Status: ${currentStatus}${isPublic ? ' (Public)' : ''}`}
         actions={
           <div className="flex items-center gap-2">
             <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
@@ -271,25 +282,39 @@ export default function EditFormPage() {
                   <Settings className="mr-2 h-4 w-4" /> Form Settings
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Form Settings</DialogTitle>
                   <DialogDescription>
-                    Update the title, description, and intended use case for your form.
+                    Update title, description, use case, visibility, and tags for your form.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="settingsFormTitle" className="text-right">Title</Label>
-                    <Input id="settingsFormTitle" value={tempTitle} onChange={(e) => setTempTitle(e.target.value)} className="col-span-3" />
+                  <div className="space-y-1">
+                    <Label htmlFor="settingsFormTitle">Title</Label>
+                    <Input id="settingsFormTitle" value={tempTitle} onChange={(e) => setTempTitle(e.target.value)} />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="settingsFormDescription" className="text-right">Description</Label>
-                    <Textarea id="settingsFormDescription" value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} className="col-span-3" rows={2} />
+                  <div className="space-y-1">
+                    <Label htmlFor="settingsFormDescription">Description</Label>
+                    <Textarea id="settingsFormDescription" value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} rows={2} />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="settingsIntendedUseCase" className="text-right">Use Case</Label>
-                    <Input id="settingsIntendedUseCase" value={tempIntendedUseCase} onChange={(e) => setTempIntendedUseCase(e.target.value)} className="col-span-3" />
+                  <div className="space-y-1">
+                    <Label htmlFor="settingsIntendedUseCase">Use Case</Label>
+                    <Input id="settingsIntendedUseCase" value={tempIntendedUseCase} onChange={(e) => setTempIntendedUseCase(e.target.value)} />
+                  </div>
+                   <div className="flex items-center space-x-2 pt-2">
+                    <Switch id="settingsIsPublic" checked={tempIsPublic} onCheckedChange={setTempIsPublic} />
+                    <Label htmlFor="settingsIsPublic" className="flex items-center gap-1">
+                      <Globe className="h-4 w-4" /> Public Form
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground -mt-1">If checked, anyone with the link can view and submit this form (if Published).</p>
+                  <div className="space-y-1">
+                    <Label htmlFor="settingsTags" className="flex items-center gap-1">
+                        <Tags className="h-4 w-4" /> Tags
+                    </Label>
+                    <Input id="settingsTags" value={tempTagsString} onChange={(e) => setTempTagsString(e.target.value)} placeholder="e.g., finance, onboarding, kyc" />
+                    <p className="text-xs text-muted-foreground">Comma-separated list of tags.</p>
                   </div>
                 </div>
                 <DialogFooter>

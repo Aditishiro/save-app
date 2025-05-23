@@ -5,13 +5,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, FileText, Edit3, Eye, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { PlusCircle, FileText, Edit3, Eye, Trash2, Loader2, AlertTriangle, Globe, Tags } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { collection, query, where, getDocs, deleteDoc, doc, Timestamp, orderBy } from 'firebase/firestore';
-import { FormFieldData } from '@/components/form-builder/form-field-display';
+// FormFieldData is not directly used here, but good to keep if expanding form previews on this page later.
+// import { FormFieldData } from '@/components/form-builder/form-field-display';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,8 +37,8 @@ export interface FormDocument {
   submissionsCount: number;
   createdAt: Timestamp;
   lastModified: Timestamp;
-  isPublic?: boolean;
-  tags?: string[];
+  isPublic?: boolean; // Added for public access
+  tags?: string[]; // Added for form tagging
 }
 
 export default function MyFormsPage() {
@@ -70,7 +71,6 @@ export default function MyFormsPage() {
           setIsLoading(false);
         });
     } else {
-      // Not logged in, or currentUser is not yet available
       setForms([]);
       setIsLoading(false);
     }
@@ -178,7 +178,10 @@ export default function MyFormsPage() {
           {forms.map((form) => (
             <Card key={form.id} className="flex flex-col shadow-md">
               <CardHeader>
-                <CardTitle className="text-lg">{form.title}</CardTitle>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{form.title}</CardTitle>
+                  {form.isPublic && <Badge variant="outline" className="text-xs border-blue-500 text-blue-600"><Globe className="mr-1 h-3 w-3"/>Public</Badge>}
+                </div>
                 <CardDescription>
                   Status:{" "}
                   <Badge
@@ -199,10 +202,18 @@ export default function MyFormsPage() {
                   </Badge>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow">
+              <CardContent className="flex-grow space-y-1">
                 <p className="text-sm text-muted-foreground">Last Modified: {formatDate(form.lastModified)}</p>
                 <p className="text-sm text-muted-foreground">Submissions: {form.submissionsCount}</p>
                 {form.intendedUseCase && <p className="text-xs text-muted-foreground mt-1 truncate" title={form.intendedUseCase}>Use Case: {form.intendedUseCase}</p>}
+                {form.tags && form.tags.length > 0 && (
+                  <div className="mt-2">
+                    <Tags className="h-3 w-3 inline-block mr-1 text-muted-foreground" />
+                    {form.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="mr-1 text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="border-t pt-4">
                 <div className="flex w-full justify-between items-center">
@@ -213,7 +224,7 @@ export default function MyFormsPage() {
                   </Button>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" aria-label="Preview" asChild>
-                      <Link href={`/dashboard/my-forms/${form.id}/preview`}>
+                      <Link href={`/dashboard/my-forms/${form.id}/preview`} target="_blank">
                         <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
                       </Link>
                     </Button>
