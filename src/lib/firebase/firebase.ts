@@ -5,72 +5,70 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getPerformance, type FirebasePerformance } from 'firebase/performance';
 import { getAnalytics, isSupported as isAnalyticsSupported, type Analytics } from 'firebase/analytics';
-import { firebaseConfig } from './config';
+import { firebaseConfig } from './config'; // Import the hardcoded config
 
-let appInstance: FirebaseApp; // Renamed to avoid conflict with potential global 'app'
-let authInstance: Auth; // Renamed
-let dbInstance: Firestore; // Renamed
-let performanceService: FirebasePerformance | null = null; // Renamed
-let analyticsService: Analytics | null = null; // Renamed
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let performance: FirebasePerformance | null = null;
+let analytics: Analytics | null = null;
 
 // Log the configuration object that will be used to initialize Firebase
-// THIS IS FOR DIAGNOSTIC PURPOSES.
-console.log("[FormFlow Firebase DEBUG] Attempting to initialize Firebase with the following configuration:", JSON.stringify(firebaseConfig, null, 2));
+// This now comes directly from config.ts
+console.log("[FormFlow Firebase DEBUG] Firebase config to be used (from config.ts):", JSON.stringify(firebaseConfig, null, 2));
 
-// Perform a more explicit check for the API key *before* calling initializeApp
+// The explicit check for apiKey in firebaseConfig is less critical here as it's hardcoded,
+// but we'll keep a basic check to ensure the object itself is not undefined.
 if (!firebaseConfig || !firebaseConfig.apiKey) {
-  const errorMessage = "[FormFlow Firebase CRITICAL INIT ERROR] The firebaseConfig object is missing or the apiKey is not defined within it. This usually means the environment variables (e.g., NEXT_PUBLIC_FIREBASE_API_KEY from .env.local) were not loaded correctly or are missing. Please ensure your .env.local file is correctly set up in the project root and that you have restarted your Next.js development server.";
+  const errorMessage = "[FormFlow Firebase CRITICAL INIT ERROR] The hardcoded firebaseConfig object in src/lib/firebase/config.ts is missing or the apiKey is not defined within it. Please check the hardcoded values.";
   console.error(errorMessage);
-  // Throw an error to halt further execution if config is critically flawed
+  // This will halt execution if config is critically flawed even when hardcoded.
   throw new Error(errorMessage);
 } else {
-  console.log("[FormFlow Firebase DEBUG] Firebase API Key found in firebaseConfig object. Key starts with: ", firebaseConfig.apiKey.substring(0, 5) + "..."); // Log a snippet
+  console.log("[FormFlow Firebase DEBUG] Hardcoded Firebase API Key found in firebaseConfig. Key starts with: ", firebaseConfig.apiKey.substring(0, 5) + "...");
 }
-
 
 if (getApps().length === 0) {
   try {
-    // Log the key being used immediately before initialization
-    console.log("[FormFlow Firebase DEBUG] Initializing Firebase app. API key being used starts with: ", firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 5) + "..." : "API KEY IS MISSING/UNDEFINED AT THIS POINT");
-    appInstance = initializeApp(firebaseConfig);
-    console.log("[FormFlow Firebase DEBUG] Firebase app initialized successfully.");
+    console.log("[FormFlow Firebase DEBUG] Initializing Firebase app with hardcoded config. API key being used starts with: ", firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 5) + "..." : "API KEY IS MISSING/UNDEFINED IN HARDCODED CONFIG");
+    app = initializeApp(firebaseConfig);
+    console.log("[FormFlow Firebase DEBUG] Firebase app initialized successfully using hardcoded config.");
   } catch (e) {
-    console.error("[FormFlow Firebase DEBUG] Firebase initialization error during initializeApp(firebaseConfig):", e);
-    // Rethrow or handle as appropriate for your app's startup
+    console.error("[FormFlow Firebase DEBUG] Firebase initialization error during initializeApp(firebaseConfig) with hardcoded config:", e);
     throw e;
   }
 } else {
-  appInstance = getApps()[0]!;
+  app = getApps()[0]!;
   console.log("[FormFlow Firebase DEBUG] Firebase app already initialized, getting existing instance.");
 }
 
-authInstance = getAuth(appInstance);
-dbInstance = getFirestore(appInstance);
+auth = getAuth(app);
+db = getFirestore(app);
 
 if (typeof window !== 'undefined') {
-  // Initialize Performance and Analytics only on the client side
   try {
-    performanceService = getPerformance(appInstance);
+    performance = getPerformance(app);
     console.log("[FormFlow Firebase DEBUG] Firebase Performance Monitoring initialized.");
   } catch (e) {
     console.warn("[FormFlow Firebase DEBUG] Firebase Performance Monitoring could not be initialized:", e);
   }
-  
+
   isAnalyticsSupported().then((supported) => {
-    if (supported) {
+    if (supported && firebaseConfig.measurementId) { // Also check if measurementId is present
       try {
-        analyticsService = getAnalytics(appInstance);
+        analytics = getAnalytics(app);
         console.log("[FormFlow Firebase DEBUG] Firebase Analytics initialized.");
       } catch (e) {
-        console.warn("[FormFlow Firebase DEBUG] Firebase Analytics (including Crashlytics for web) could not be initialized:", e);
+        console.warn("[FormFlow Firebase DEBUG] Firebase Analytics could not be initialized:", e);
       }
+    } else if (!firebaseConfig.measurementId) {
+      console.log("[FormFlow Firebase DEBUG] Firebase Analytics not initialized because measurementId is missing in the hardcoded config.");
     } else {
-      // console.warn("Firebase Analytics is not supported in this environment."); 
+      // console.log("[FormFlow Firebase DEBUG] Firebase Analytics is not supported in this environment.");
     }
   }).catch(e => {
     console.warn("[FormFlow Firebase DEBUG] Error checking Firebase Analytics support:", e);
   });
 }
 
-// Export the initialized instances using the renamed local variables
-export { appInstance as app, authInstance as auth, dbInstance as db, performanceService as performance, analyticsService as analytics };
+export { app, auth, db, performance, analytics };
