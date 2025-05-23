@@ -1,7 +1,7 @@
 
-'use client';
+'use client'; // Ensure this is the very first line
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +22,22 @@ import { db } from '@/lib/firebase/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { GlobalComponentDefinition } from '@/platform-builder/data-models';
 
+const initialConfigurablePropertiesJson = `{
+  "text": {
+    "type": "string",
+    "label": "Button Text",
+    "defaultValue": "Click Me"
+  },
+  "color": {
+    "type": "enum",
+    "label": "Button Color",
+    "options": ["primary", "secondary", "destructive"],
+    "defaultValue": "primary"
+  }
+}`;
+
+const initialTemplate = `<button class="bg-blue-500 text-white p-2 rounded">{{text}}</button>`;
+
 export default function CreateGlobalComponentClient() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,8 +48,10 @@ export default function CreateGlobalComponentClient() {
   const [componentType, setComponentType] = useState('');
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
-  const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState('');
-  const [template, setTemplate] = useState('');
+  const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState(
+    initialConfigurablePropertiesJson
+  );
+  const [template, setTemplate] = useState(initialTemplate);
 
   const resetForm = () => {
     setComponentId('');
@@ -41,8 +59,8 @@ export default function CreateGlobalComponentClient() {
     setComponentType('');
     setDescription('');
     setIconUrl('');
-    setConfigurablePropertiesJson('{\n  "text": {\n    "type": "string",\n    "label": "Button Text",\n    "defaultValue": "Click Me"\n  },\n  "color": {\n    "type": "enum",\n    "label": "Button Color",\n    "options": ["primary", "secondary", "destructive"],\n    "defaultValue": "primary"\n  }\n}');
-    setTemplate('<button class="bg-blue-500 text-white p-2 rounded">{{text}}</button>');
+    setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
+    setTemplate(initialTemplate);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,9 +128,9 @@ export default function CreateGlobalComponentClient() {
   };
   
   const handleOpenChange = (open: boolean) => {
-    if (open && !configurablePropertiesJson && !template) {
-        setConfigurablePropertiesJson('{\n  "text": {\n    "type": "string",\n    "label": "Button Text",\n    "defaultValue": "Click Me"\n  },\n  "color": {\n    "type": "enum",\n    "label": "Button Color",\n    "options": ["primary", "secondary", "destructive"],\n    "defaultValue": "primary"\n  }\n}');
-        setTemplate('<button class="bg-blue-500 text-white p-2 rounded">{{text}}</button>');
+    if (open && !configurablePropertiesJson.trim() && !template.trim()) {
+        setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
+        setTemplate(initialTemplate);
     }
     setIsOpen(open);
   };
@@ -142,6 +160,7 @@ export default function CreateGlobalComponentClient() {
                 onChange={(e) => setComponentId(e.target.value.replace(/\s+/g, '_').toLowerCase())}
                 placeholder="e.g., custom_button"
                 required
+                disabled={isSaving}
               />
             </div>
             <div>
@@ -152,6 +171,7 @@ export default function CreateGlobalComponentClient() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g., Custom Button"
                 required
+                disabled={isSaving}
               />
             </div>
           </div>
@@ -163,6 +183,7 @@ export default function CreateGlobalComponentClient() {
               onChange={(e) => setComponentType(e.target.value)}
               placeholder="e.g., Button, Card, HeroSection"
               required
+              disabled={isSaving}
             />
           </div>
           <div>
@@ -173,6 +194,7 @@ export default function CreateGlobalComponentClient() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Briefly describe what this component does."
               rows={2}
+              disabled={isSaving}
             />
           </div>
           <div>
@@ -182,6 +204,7 @@ export default function CreateGlobalComponentClient() {
               value={iconUrl}
               onChange={(e) => setIconUrl(e.target.value)}
               placeholder="https://example.com/icon.svg (for component palette)"
+              disabled={isSaving}
             />
           </div>
           <div>
@@ -193,6 +216,7 @@ export default function CreateGlobalComponentClient() {
               placeholder='Example: { "text": { "type": "string", "label": "Button Text", "defaultValue": "Click Me" } }'
               rows={8}
               className="font-mono text-xs"
+              disabled={isSaving}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Define properties as a JSON object. See data model for structure.
@@ -207,6 +231,7 @@ export default function CreateGlobalComponentClient() {
               placeholder="e.g., <button class='p-2'>{{text}}</button>"
               rows={5}
               className="font-mono text-xs"
+              disabled={isSaving}
             />
              <p className="text-xs text-muted-foreground mt-1">
               A basic HTML/JSX-like template structure. Use Handlebars-style {{ '{'{'{propertyName}'}'}' }} for dynamic values.
