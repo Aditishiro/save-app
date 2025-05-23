@@ -6,26 +6,18 @@ import type { Timestamp } from 'firebase/firestore';
  * Stored in: /components/{componentDefinitionId}
  */
 export interface GlobalComponentDefinition {
-  id: string; // Matches document ID
+  id: string; // Matches document ID, user-defined at creation for simplicity here
   type: string; // e.g., 'Button', 'DataTable', 'TextInput', 'HeroSection'
   displayName: string; // User-friendly name
   description?: string;
   iconUrl?: string; // For display in a component palette
   // Defines the properties that can be configured for this component type
-  configurableProperties: {
-    [propName: string]: {
-      type: 'string' | 'number' | 'boolean' | 'color' | 'json' | 'reference' | 'array' | 'enum';
-      label: string;
-      defaultValue?: any;
-      options?: string[]; // For 'enum' type
-      referenceType?: 'firestoreCollection' | 'storagePath'; // For 'reference' type
-      // Add other metadata like help text, validation rules for the property
-    };
-  };
+  // Stored as a stringified JSON for simplicity in this initial version
+  configurablePropertiesJson?: string; 
   // Could also include default HTML/JSX template structure or rendering hints
   template?: string;
-  createdAt: Timestamp;
-  lastModified: Timestamp;
+  createdAt?: Timestamp; // Will be set by serverTimestamp
+  lastModified?: Timestamp; // Will be set by serverTimestamp
 }
 
 /**

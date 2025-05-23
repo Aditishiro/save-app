@@ -15,7 +15,8 @@ import {
   LogOut,
   Search,
   BarChart3,
-  Loader2, // Added Loader2
+  Loader2, 
+  Package, // Added for Platform Admin section
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -43,8 +44,17 @@ const navItems = [
   { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot },
   { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
+
+const adminNavItems = [ // New section for admin-level platform management
+  { href: '/dashboard/platform-admin/global-components', label: 'Global Components', icon: Package },
+  // Add other platform admin links here, e.g., tenant management
+];
+
+const bottomNavItems = [
+ { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+];
+
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { currentUser, loading, logOut } = useAuth();
@@ -66,15 +76,59 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  // For now, simple check if user is 'admin' - replace with actual role check from custom claims
+  const isPlatformAdmin = currentUser?.email === 'testadmin@example.com'; // Example: simple check
+
   return (
     <SidebarProvider defaultOpen>
       <Sidebar variant="sidebar" collapsible="icon" side="left" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Logo />
         </SidebarHeader>
-        <SidebarContent className="p-2">
+        <SidebarContent className="p-2 flex flex-col justify-between">
           <SidebarMenu>
             {navItems.map((item) => (
+              <SidebarMenuItem key={item.label}>
+                <Link href={item.href} passHref legacyBehavior>
+                  <SidebarMenuButton
+                    tooltip={item.label}
+                    asChild
+                  >
+                    <a>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            ))}
+            
+            {isPlatformAdmin && ( // Conditionally render admin section
+              <>
+                <SidebarMenuButton variant="ghost" className="my-2 pointer-events-none justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+                  <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Platform Admin</span>
+                </SidebarMenuButton>
+                {adminNavItems.map((item) => (
+                  <SidebarMenuItem key={item.label}>
+                    <Link href={item.href} passHref legacyBehavior>
+                      <SidebarMenuButton
+                        tooltip={item.label}
+                        asChild
+                      >
+                        <a>
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.label}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                ))}
+              </>
+            )}
+          </SidebarMenu>
+
+           <SidebarMenu className="mt-auto"> {/* Pushes settings to the bottom */}
+             {bottomNavItems.map((item) => (
               <SidebarMenuItem key={item.label}>
                 <Link href={item.href} passHref legacyBehavior>
                   <SidebarMenuButton
