@@ -28,6 +28,37 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "components",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "platformId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "layoutId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "components",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "displayName",
+          "order": "ASCENDING"
+        }
+      ]
     }
-  ]
+  ],
+  "fieldOverrides": []
 }
+
+    
