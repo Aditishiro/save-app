@@ -1,8 +1,9 @@
 
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PackagePlus } from 'lucide-react';
+import { Package } from 'lucide-react'; // Changed from PackagePlus
 import CreateGlobalComponentClient from './components/create-global-component-client';
+import GlobalComponentsListClient from './components/global-components-list-client'; // New import
 
 export default function GlobalComponentsPage() {
   return (
@@ -15,7 +16,7 @@ export default function GlobalComponentsPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <PackagePlus className="h-6 w-6 text-primary" />
+            <Package className="h-6 w-6 text-primary" /> {/* Changed icon */}
             Component Library
           </CardTitle>
           <CardDescription>
@@ -23,12 +24,7 @@ export default function GlobalComponentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* TODO: Implement listing of existing global components here */}
-          <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-lg">
-            <PackagePlus className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold text-muted-foreground">Component Listing Coming Soon</h3>
-            <p className="text-muted-foreground">Use the "Create New Global Component" button to add components.</p>
-          </div>
+          <GlobalComponentsListClient /> {/* Use the new client component */}
         </CardContent>
       </Card>
     </>

@@ -42,7 +42,7 @@ export default function CreateGlobalComponentClient() {
     setDescription('');
     setIconUrl('');
     setConfigurablePropertiesJson('{\n  "text": {\n    "type": "string",\n    "label": "Button Text",\n    "defaultValue": "Click Me"\n  },\n  "color": {\n    "type": "enum",\n    "label": "Button Color",\n    "options": ["primary", "secondary", "destructive"],\n    "defaultValue": "primary"\n  }\n}');
-    setTemplate('<button>{{text}}</button>');
+    setTemplate('<button class="bg-blue-500 text-white p-2 rounded">{{text}}</button>');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,15 +109,13 @@ export default function CreateGlobalComponentClient() {
     }
   };
   
-  // Set default values when dialog opens
   const handleOpenChange = (open: boolean) => {
     if (open && !configurablePropertiesJson && !template) {
         setConfigurablePropertiesJson('{\n  "text": {\n    "type": "string",\n    "label": "Button Text",\n    "defaultValue": "Click Me"\n  },\n  "color": {\n    "type": "enum",\n    "label": "Button Color",\n    "options": ["primary", "secondary", "destructive"],\n    "defaultValue": "primary"\n  }\n}');
         setTemplate('<button class="bg-blue-500 text-white p-2 rounded">{{text}}</button>');
     }
     setIsOpen(open);
-  }
-
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -141,7 +139,7 @@ export default function CreateGlobalComponentClient() {
               <Input
                 id="componentId"
                 value={componentId}
-                onChange={(e) => setComponentId(e.target.value.replace(/\s+/g, '_').toLowerCase())} // Basic slugification
+                onChange={(e) => setComponentId(e.target.value.replace(/\s+/g, '_').toLowerCase())}
                 placeholder="e.g., custom_button"
                 required
               />
