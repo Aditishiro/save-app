@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Loader2, AlertTriangle, ArrowLeft, Save, LayoutDashboard, Settings2, PlusCircle, Trash2, Palette as PaletteIcon, Move } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { PlatformData, GlobalComponentDefinition, PlatformComponentInstance, PlatformLayout, ConfigurablePropertySchema } from '@/platform-builder/data-models';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ import { getRenderableComponent } from '@/platform-builder/component-registry';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Switch } from '@/components/ui/switch'; // Added Switch import
+import { Switch } from '@/components/ui/switch';
 
 interface SortableItemProps {
   id: string;
@@ -47,8 +47,6 @@ function SortablePlatformComponentItem({ id, instance, onSelectInstance, selecte
     zIndex: isDragging ? 10 : undefined,
     opacity: isDragging ? 0.8 : 1,
   };
-
-  // const ComponentToRender = getRenderableComponent(instance.type); // Simplified for now
 
   return (
     <Card
@@ -108,7 +106,7 @@ export default function EditPlatformPage() {
   // Fetch Platform Data
   useEffect(() => {
     if (!platformId || !currentUser) {
-      if (!platformId) router.push('/dashboard/platform-builder/my-platforms');
+      if (!platformId && !isLoading) router.push('/dashboard/platform-builder/my-platforms');
       return;
     }
     setIsLoading(true);
@@ -116,17 +114,20 @@ export default function EditPlatformPage() {
     const unsubscribe = onSnapshot(platformDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = { id: docSnap.id, ...docSnap.data() } as PlatformData;
-        if (data.tenantId !== currentUser.uid) {
+        if (data.tenantId !== currentUser.uid) { // Assuming tenantId is uid for now
           setError("You are not authorized to edit this platform.");
           toast({ title: "Access Denied", description: "You do not have permission.", variant: "destructive" });
           router.push('/dashboard/platform-builder/my-platforms');
+          setIsLoading(false); // Stop loading if access denied
           return;
         }
         setPlatform(data);
         setPlatformName(data.name);
         setPlatformDescription(data.description || "");
-        if (!data.defaultLayoutId) {
-          const newLayoutId = `default_${Date.now()}`;
+
+        if (!data.defaultLayoutId && currentUser?.uid) {
+          console.log(`Platform ${platformId} has no defaultLayoutId. Creating one.`);
+          const newLayoutId = `default_layout_${Date.now()}`;
           const layoutRef = doc(db, 'platforms', platformId, 'layouts', newLayoutId);
           const newLayoutData: Omit<PlatformLayout, 'id'> = {
             name: 'Main Layout',
@@ -136,23 +137,26 @@ export default function EditPlatformPage() {
             lastModified: serverTimestamp() as Timestamp,
           };
           setDoc(layoutRef, newLayoutData).then(() => {
-            updateDoc(platformDocRef, { defaultLayoutId: newLayoutId });
-            setCurrentLayout({id: newLayoutId, ...newLayoutData});
-          }).catch(err => console.error("Error creating default layout:", err));
+            updateDoc(platformDocRef, { defaultLayoutId: newLayoutId, lastModified: serverTimestamp() })
+              .then(() => {
+                console.log(`Default layout ${newLayoutId} created and linked to platform ${platformId}.`);
+              })
+              .catch(err => console.error("Error linking default layout:", err));
+          }).catch(err => console.error("Error creating default layout document:", err));
         }
       } else {
-        setError(\`Platform with ID "\${platformId}" not found.\`);
+        setError("Platform with ID \"" + platformId + "\" not found.");
         toast({ title: "Platform Not Found", variant: "destructive" });
         router.push('/dashboard/platform-builder/my-platforms');
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }, (err) => {
       console.error("Error fetching platform:", err);
-      setError("Failed to load platform data.");
+      setError("Failed to load platform data. Please try again.");
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [platformId, currentUser, router, toast]);
+  }, [platformId, currentUser, router, toast, isLoading]);
 
   // Fetch Global Component Definitions
   useEffect(() => {
@@ -173,6 +177,7 @@ export default function EditPlatformPage() {
     if (!platform?.defaultLayoutId) {
       setComponentInstances([]);
       setCurrentLayout(null);
+      if (platform && !isLoading) setIsLoading(false); // Ensure loading stops if no layout
       return;
     }
     const layoutDocRef = doc(db, 'platforms', platformId, 'layouts', platform.defaultLayoutId);
@@ -186,23 +191,27 @@ export default function EditPlatformPage() {
         const unsubscribeInstances = onSnapshot(qInstances, (snapshot) => {
           const fetchedInstances = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlatformComponentInstance));
           setComponentInstances(fetchedInstances);
+          setIsLoading(false); // Set loading false after instances are fetched
         }, (err) => {
           console.error("Error fetching component instances:", err);
           setComponentInstances([]);
+          setIsLoading(false);
         });
         return () => unsubscribeInstances();
       } else {
-        console.warn(\`Default layout \${platform.defaultLayoutId} not found.\`);
+        console.warn(`Default layout ${platform.defaultLayoutId} not found.`);
         setCurrentLayout(null);
         setComponentInstances([]);
+        setIsLoading(false);
       }
     }, (err) => {
       console.error("Error fetching layout:", err);
       setCurrentLayout(null);
       setComponentInstances([]);
+      setIsLoading(false);
     });
     return () => unsubscribeLayout();
-  }, [platformId, platform?.defaultLayoutId]);
+  }, [platformId, platform?.defaultLayoutId, platform, isLoading]);
 
 
   const handleSaveChanges = async () => {
@@ -219,7 +228,7 @@ export default function EditPlatformPage() {
         description: platformDescription,
         lastModified: serverTimestamp() as Timestamp,
       });
-      toast({ title: "Changes Saved", description: \`Platform "\${platformName}" updated.\` });
+      toast({ title: "Changes Saved", description: `Platform "${platformName}" updated.` });
     } catch (error) {
       console.error("Error updating platform: ", error);
       toast({ title: "Error Saving Changes", variant: "destructive" });
@@ -260,7 +269,7 @@ export default function EditPlatformPage() {
         lastModified: serverTimestamp(),
     })
     .then((docRef) => {
-        toast({ title: "Component Added", description: \`\${componentDef.displayName} added to canvas.\`});
+        toast({ title: "Component Added", description: `${componentDef.displayName} added to canvas.`});
         setSelectedInstanceId(docRef.id);
     })
     .catch(err => {
@@ -288,7 +297,7 @@ export default function EditPlatformPage() {
     if (!platformId || !instanceId) return;
     const instanceDocRef = doc(db, 'platforms', platformId, 'components', instanceId);
     updateDoc(instanceDocRef, {
-        [\`configuredValues.\${propertyName}\`]: value,
+        [`configuredValues.${propertyName}`]: value,
         lastModified: serverTimestamp()
     }).catch(err => {
         console.error("Error updating instance property:", err);
@@ -301,14 +310,19 @@ export default function EditPlatformPage() {
     if (active.id !== over?.id && over) {
       const oldIndex = componentInstances.findIndex((item) => item.id === active.id);
       const newIndex = componentInstances.findIndex((item) => item.id === over.id);
+      
+      if (oldIndex === -1 || newIndex === -1) {
+        console.error("Error during drag: item not found in instances array.");
+        return;
+      }
       const newOrderedInstances = arrayMove(componentInstances, oldIndex, newIndex);
       
-      setComponentInstances(newOrderedInstances);
+      setComponentInstances(newOrderedInstances); // Optimistic update
 
       const batch = writeBatch(db);
       newOrderedInstances.forEach((instance, index) => {
         const docRef = doc(db, 'platforms', platformId, 'components', instance.id);
-        batch.update(docRef, { order: index });
+        batch.update(docRef, { order: index, lastModified: serverTimestamp() });
       });
       try {
         await batch.commit();
@@ -316,12 +330,15 @@ export default function EditPlatformPage() {
       } catch (error) {
         console.error("Error updating component order:", error);
         toast({ title: "Order Error", description: "Failed to save new order.", variant: "destructive" });
+        // Revert optimistic update if Firestore save fails
+        // This would require fetching the old order or storing it before the optimistic update.
+        // For simplicity, not implemented here, but important for robust UX.
       }
     }
   };
 
 
-  if (isLoading) {
+  if (isLoading && !platform) { // Only show full page loader if platform data itself is not yet loaded
     return (
       <div className="flex flex-col h-full">
         <PageHeader title="Loading Platform..." description="Please wait..." />
@@ -335,7 +352,7 @@ export default function EditPlatformPage() {
   if (error || !platform) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <PageHeader title="Error Loading Platform" description={error || "Platform data missing."} />
+        <PageHeader title="Error Loading Platform" description={error || "Platform data missing or access denied."} />
         <Button variant="outline" asChild>
           <Link href="/dashboard/platform-builder/my-platforms">Back to My Platforms</Link>
         </Button>
@@ -345,10 +362,10 @@ export default function EditPlatformPage() {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-theme(spacing.24))] overflow-hidden"> {/* Adjusted height */}
         <PageHeader
-          title={\`Edit Platform: \${platform.name}\`}
-          description={\`Layout: \${currentLayout?.name || 'N/A'}\`}
+          title={`Edit Platform: ${platform.name}`}
+          description={`Layout: ${currentLayout?.name || 'N/A'}`}
           actions={
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
@@ -360,7 +377,7 @@ export default function EditPlatformPage() {
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Details
               </Button>
                <Button size="sm" variant="secondary" asChild>
-                <Link href={\`/platforms/\${platformId}\`} target="_blank">
+                <Link href={`/platforms/${platformId}`} target="_blank">
                   <LayoutDashboard className="mr-2 h-4 w-4" /> Live Preview
                 </Link>
               </Button>
@@ -369,8 +386,8 @@ export default function EditPlatformPage() {
         />
 
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4 overflow-hidden">
-          <div className="md:col-span-3 flex flex-col gap-4 overflow-y-auto">
-            <Card>
+          <div className="md:col-span-3 flex flex-col gap-4 min-h-0"> {/* Added min-h-0 */}
+            <Card className="flex-shrink-0"> {/* Platform Details - should not grow excessively */}
               <CardHeader>
                 <CardTitle className="text-base">Platform Details</CardTitle>
               </CardHeader>
@@ -385,15 +402,16 @@ export default function EditPlatformPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="flex-1 flex flex-col min-h-0">
-              <CardHeader>
+            <Card className="flex-1 flex flex-col min-h-0"> {/* Component Palette - should grow and scroll */}
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-base flex items-center gap-1">
                   <PaletteIcon className="h-4 w-4 text-primary" /> Component Palette
                 </CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1">
-                <CardContent className="space-y-2">
-                  {globalComponents.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No global components defined.</p>}
+                <CardContent className="space-y-2 py-2"> {/* Adjusted padding */}
+                  {isLoading && globalComponents.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-4" />}
+                  {!isLoading && globalComponents.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No global components defined.</p>}
                   {globalComponents.map(comp => (
                     <Button
                       key={comp.id}
@@ -401,6 +419,7 @@ export default function EditPlatformPage() {
                       size="sm"
                       className="w-full justify-start text-xs h-8"
                       onClick={() => handleAddComponentToCanvas(comp)}
+                      disabled={isSaving}
                     >
                       {comp.iconUrl ? <img src={comp.iconUrl} alt="" className="h-3 w-3 mr-2" data-ai-hint="component icon" /> : <LayoutDashboard className="h-3 w-3 mr-2"/>}
                       {comp.displayName}
@@ -411,13 +430,14 @@ export default function EditPlatformPage() {
             </Card>
           </div>
 
-          <div className="md:col-span-6 flex flex-col min-h-0">
-            <Card className="flex-1 flex flex-col border-2 border-dashed">
-              <CardHeader>
-                  <CardTitle className="text-base">Canvas (\${currentLayout?.name || 'No Layout'})</CardTitle>
+          <div className="md:col-span-6 flex flex-col min-h-0"> {/* Canvas Column */}
+            <Card className="flex-1 flex flex-col border-2 border-dashed min-h-0">
+              <CardHeader className="flex-shrink-0">
+                  <CardTitle className="text-base">Canvas ({currentLayout?.name || 'No Layout'})</CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1 bg-muted/20 p-4 rounded-b-md">
-                {componentInstances.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">Drag or add components here.</p>}
+                {isLoading && componentInstances.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-10" />}
+                {!isLoading && componentInstances.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">Drag or add components here.</p>}
                 <SortableContext items={componentInstances.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   {componentInstances.map(instance => (
                     <SortablePlatformComponentItem
@@ -434,73 +454,92 @@ export default function EditPlatformPage() {
             </Card>
           </div>
 
-          <div className="md:col-span-3 flex flex-col min-h-0">
-            <Card className="flex-1 flex flex-col">
-              <CardHeader>
+          <div className="md:col-span-3 flex flex-col min-h-0"> {/* Properties Panel Column */}
+            <Card className="flex-1 flex flex-col min-h-0">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-base flex items-center gap-1">
                   <Settings2 className="h-4 w-4 text-primary" /> Component Properties
                 </CardTitle>
-                {selectedComponentDefinition && <CardDescription className="text-xs">\${selectedComponentDefinition.displayName} (ID: ...\${selectedComponentInstance?.id.slice(-4)})</CardDescription>}
+                {selectedComponentDefinition && <CardDescription className="text-xs truncate">{selectedComponentDefinition.displayName} (ID: ...{selectedComponentInstance?.id.slice(-4)})</CardDescription>}
               </CardHeader>
               <ScrollArea className="flex-1">
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 py-2"> {/* Adjusted padding */}
                   {!selectedInstanceId && <p className="text-xs text-muted-foreground text-center py-4">Select a component on the canvas.</p>}
                   {selectedComponentInstance && selectedComponentDefinition && (
                     Object.entries(selectedComponentDefinition.configurablePropertiesSchema || {}).map(([propKey, propSchema]: [string, ConfigurablePropertySchema]) => (
-                      <div key={propKey}>
-                        <Label htmlFor={\`prop-\${propKey}\`} className="text-xs">{propSchema.label || propKey}</Label>
+                      <div key={propKey} className="space-y-1">
+                        <Label htmlFor={`prop-${propKey}`} className="text-xs">{propSchema.label || propKey}</Label>
                         {propSchema.type === 'string' || propSchema.type === 'text' || propSchema.type === 'color' ? (
                           <Input
-                            id={\`prop-\${propKey}\`}
+                            id={`prop-${propKey}`}
                             type={propSchema.type === 'color' ? 'color' : 'text'}
                             value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
                             onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
-                            className="h-8 text-sm mt-1"
+                            className="h-8 text-sm"
                             placeholder={propSchema.placeholder}
+                            disabled={isSaving}
                           />
                         ) : propSchema.type === 'textarea' ? (
                            <Textarea
-                            id={\`prop-\${propKey}\`}
+                            id={`prop-${propKey}`}
                             value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
                             onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
                             rows={2}
-                            className="text-sm mt-1"
+                            className="text-sm"
                             placeholder={propSchema.placeholder}
+                            disabled={isSaving}
                           />
                         ) : propSchema.type === 'number' ? (
                            <Input
-                            id={\`prop-\${propKey}\`}
+                            id={`prop-${propKey}`}
                             type="number"
                             value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
                             onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, parseFloat(e.target.value))}
-                            className="h-8 text-sm mt-1"
+                            className="h-8 text-sm"
                             placeholder={propSchema.placeholder}
+                            disabled={isSaving}
                           />
                         ) : propSchema.type === 'boolean' ? (
-                          <div className="flex items-center space-x-2 mt-1">
+                          <div className="flex items-center space-x-2 pt-1">
                             <Switch
-                                id={\`prop-\${propKey}\`}
+                                id={`prop-${propKey}`}
                                 checked={selectedComponentInstance.configuredValues[propKey] !== undefined ? !!selectedComponentInstance.configuredValues[propKey] : !!propSchema.defaultValue}
                                 onCheckedChange={(checked) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, checked)}
                                 className="h-4 w-auto data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                                disabled={isSaving}
                             />
-                            <Label htmlFor={\`prop-\${propKey}\`} className="text-xs font-normal">{propSchema.helperText || propSchema.label || propKey}</Label>
+                            <Label htmlFor={`prop-${propKey}`} className="text-xs font-normal">{propSchema.helperText || propSchema.label || propKey}</Label>
                           </div>
-                        ) : ( // Fallback for other types like dropdown, file, image, etc.
+                        ) : propSchema.type === 'dropdown' && propSchema.options ? (
+                          <Select
+                            value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
+                            onValueChange={(value) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, value)}
+                            disabled={isSaving}
+                          >
+                            <SelectTrigger id={`prop-${propKey}`} className="h-8 text-sm">
+                              <SelectValue placeholder={propSchema.placeholder || "Select..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {propSchema.options.map(opt => (
+                                <SelectItem key={opt} value={opt} className="text-sm">{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : ( 
                           <Input
-                            id={\`prop-\${propKey}\`}
+                            id={`prop-${propKey}`}
                             value={selectedComponentInstance.configuredValues[propKey] !== undefined ? String(selectedComponentInstance.configuredValues[propKey]) : (propSchema.defaultValue !== undefined ? String(propSchema.defaultValue) : '')}
                             onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
-                            className="h-8 text-sm mt-1"
+                            className="h-8 text-sm"
                             placeholder={propSchema.placeholder}
-                            disabled
+                            disabled // For unhandled types, make it disabled to prevent unexpected input
                           />
                         )}
                         {propSchema.helperText && propSchema.type !== 'boolean' && <p className="text-xs text-muted-foreground mt-1">{propSchema.helperText}</p>}
                       </div>
                     ))
                   )}
-                  {selectedInstanceId && !selectedComponentDefinition && <p className="text-xs text-destructive">Could not find global definition for selected component.</p>}
+                  {selectedInstanceId && !selectedComponentDefinition && <p className="text-xs text-destructive text-center py-4">Could not find global definition for selected component.</p>}
                 </CardContent>
               </ScrollArea>
             </Card>
@@ -510,3 +549,4 @@ export default function EditPlatformPage() {
     </DndContext>
   );
 }
+
