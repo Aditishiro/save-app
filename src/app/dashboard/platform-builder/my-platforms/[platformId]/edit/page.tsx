@@ -22,6 +22,8 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+
 
 interface SortableItemProps {
   id: string;
@@ -114,11 +116,12 @@ export default function EditPlatformPage() {
     const unsubscribe = onSnapshot(platformDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = { id: docSnap.id, ...docSnap.data() } as PlatformData;
-        if (data.tenantId !== currentUser.uid) { // Assuming tenantId is uid for now
+        // Assuming tenantId is uid for now - this needs proper multi-tenancy logic later
+        if (data.tenantId !== currentUser.uid) { 
           setError("You are not authorized to edit this platform.");
           toast({ title: "Access Denied", description: "You do not have permission.", variant: "destructive" });
           router.push('/dashboard/platform-builder/my-platforms');
-          setIsLoading(false); // Stop loading if access denied
+          setIsLoading(false); 
           return;
         }
         setPlatform(data);
@@ -145,7 +148,7 @@ export default function EditPlatformPage() {
           }).catch(err => console.error("Error creating default layout document:", err));
         }
       } else {
-        setError("Platform with ID \"" + platformId + "\" not found.");
+        setError(`Platform with ID "${platformId}" not found.`);
         toast({ title: "Platform Not Found", variant: "destructive" });
         router.push('/dashboard/platform-builder/my-platforms');
         setIsLoading(false);
@@ -177,7 +180,7 @@ export default function EditPlatformPage() {
     if (!platform?.defaultLayoutId) {
       setComponentInstances([]);
       setCurrentLayout(null);
-      if (platform && !isLoading) setIsLoading(false); // Ensure loading stops if no layout
+      if (platform && !isLoading) setIsLoading(false); 
       return;
     }
     const layoutDocRef = doc(db, 'platforms', platformId, 'layouts', platform.defaultLayoutId);
@@ -191,27 +194,27 @@ export default function EditPlatformPage() {
         const unsubscribeInstances = onSnapshot(qInstances, (snapshot) => {
           const fetchedInstances = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlatformComponentInstance));
           setComponentInstances(fetchedInstances);
-          setIsLoading(false); // Set loading false after instances are fetched
+          if (isLoading) setIsLoading(false); 
         }, (err) => {
           console.error("Error fetching component instances:", err);
           setComponentInstances([]);
-          setIsLoading(false);
+          if (isLoading) setIsLoading(false);
         });
         return () => unsubscribeInstances();
       } else {
         console.warn(`Default layout ${platform.defaultLayoutId} not found.`);
         setCurrentLayout(null);
         setComponentInstances([]);
-        setIsLoading(false);
+        if (isLoading) setIsLoading(false);
       }
     }, (err) => {
       console.error("Error fetching layout:", err);
       setCurrentLayout(null);
       setComponentInstances([]);
-      setIsLoading(false);
+      if (isLoading) setIsLoading(false);
     });
     return () => unsubscribeLayout();
-  }, [platformId, platform?.defaultLayoutId, platform, isLoading]);
+  }, [platformId, platform?.defaultLayoutId, platform, isLoading, toast]);
 
 
   const handleSaveChanges = async () => {
@@ -229,8 +232,8 @@ export default function EditPlatformPage() {
         lastModified: serverTimestamp() as Timestamp,
       });
       toast({ title: "Changes Saved", description: `Platform "${platformName}" updated.` });
-    } catch (error) {
-      console.error("Error updating platform: ", error);
+    } catch (saveError) {
+      console.error("Error updating platform: ", saveError);
       toast({ title: "Error Saving Changes", variant: "destructive" });
     } finally {
       setIsSaving(false);
@@ -241,20 +244,21 @@ export default function EditPlatformPage() {
   const selectedComponentDefinition = globalComponents.find(def => def.id === selectedComponentInstance?.definitionId);
 
   const handleAddComponentToCanvas = (componentDef: GlobalComponentDefinition) => {
-    if (!currentLayout || !currentUser) {
-        toast({ title: "Error", description: "No active layout or user not found.", variant: "destructive"});
+    if (!currentLayout || !currentUser || !platformId) {
+        toast({ title: "Error", description: "No active layout, user, or platform ID found.", variant: "destructive"});
         return;
     }
     const newInstance: Omit<PlatformComponentInstance, 'id' | 'createdAt' | 'lastModified'> = {
         definitionId: componentDef.id,
-        type: componentDef.type,
-        tenantId: currentUser.uid, 
+        type: componentDef.type, // Denormalize type for easier rendering
+        tenantId: currentUser.uid, // Assuming currentUser.uid as tenantId
         platformId: platformId,
         layoutId: currentLayout.id,
         configuredValues: {}, 
-        order: componentInstances.length, 
+        order: componentInstances.length, // Simple ordering for now
     };
 
+    // Pre-fill default values
     if (componentDef.configurablePropertiesSchema) {
         Object.entries(componentDef.configurablePropertiesSchema).forEach(([key, schema]) => {
             if (schema.defaultValue !== undefined) {
@@ -270,7 +274,7 @@ export default function EditPlatformPage() {
     })
     .then((docRef) => {
         toast({ title: "Component Added", description: `${componentDef.displayName} added to canvas.`});
-        setSelectedInstanceId(docRef.id);
+        setSelectedInstanceId(docRef.id); // Select the newly added component
     })
     .catch(err => {
         console.error("Error adding component instance: ", err);
@@ -285,10 +289,13 @@ export default function EditPlatformPage() {
       await deleteDoc(instanceDocRef);
       toast({ title: "Component Removed", description: "Component instance removed from canvas."});
       if (selectedInstanceId === instanceId) {
-        setSelectedInstanceId(null);
+        setSelectedInstanceId(null); // Deselect if the deleted item was selected
       }
-    } catch (error) {
-      console.error("Error deleting component instance:", error);
+      // Note: Re-ordering remaining components is not handled here, could be complex.
+      // A simpler approach for now is to rely on the `orderBy('order')` query.
+      // For robust re-ordering, you might need to update 'order' fields of subsequent items.
+    } catch (deleteError) {
+      console.error("Error deleting component instance:", deleteError);
       toast({ title: "Error", description: "Could not remove component instance.", variant: "destructive"});
     }
   };
@@ -296,6 +303,7 @@ export default function EditPlatformPage() {
   const handleUpdateInstanceProperty = (instanceId: string, propertyName: string, value: any) => {
     if (!platformId || !instanceId) return;
     const instanceDocRef = doc(db, 'platforms', platformId, 'components', instanceId);
+    // Use dot notation for updating nested fields in a map
     updateDoc(instanceDocRef, {
         [`configuredValues.${propertyName}`]: value,
         lastModified: serverTimestamp()
@@ -317,7 +325,8 @@ export default function EditPlatformPage() {
       }
       const newOrderedInstances = arrayMove(componentInstances, oldIndex, newIndex);
       
-      setComponentInstances(newOrderedInstances); // Optimistic update
+      // Optimistically update UI. Firestore listener will eventually confirm.
+      setComponentInstances(newOrderedInstances); 
 
       const batch = writeBatch(db);
       newOrderedInstances.forEach((instance, index) => {
@@ -330,15 +339,13 @@ export default function EditPlatformPage() {
       } catch (error) {
         console.error("Error updating component order:", error);
         toast({ title: "Order Error", description: "Failed to save new order.", variant: "destructive" });
-        // Revert optimistic update if Firestore save fails
-        // This would require fetching the old order or storing it before the optimistic update.
-        // For simplicity, not implemented here, but important for robust UX.
+        // Consider reverting optimistic update if Firestore save fails (more complex)
       }
     }
   };
 
 
-  if (isLoading && !platform) { // Only show full page loader if platform data itself is not yet loaded
+  if (isLoading && !platform) { 
     return (
       <div className="flex flex-col h-full">
         <PageHeader title="Loading Platform..." description="Please wait..." />
@@ -362,7 +369,7 @@ export default function EditPlatformPage() {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-[calc(100vh-theme(spacing.24))] overflow-hidden"> {/* Adjusted height */}
+      <div className="flex flex-col h-[calc(100vh-theme(spacing.24))] overflow-hidden">
         <PageHeader
           title={`Edit Platform: ${platform.name}`}
           description={`Layout: ${currentLayout?.name || 'N/A'}`}
@@ -386,8 +393,8 @@ export default function EditPlatformPage() {
         />
 
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4 overflow-hidden">
-          <div className="md:col-span-3 flex flex-col gap-4 min-h-0"> {/* Added min-h-0 */}
-            <Card className="flex-shrink-0"> {/* Platform Details - should not grow excessively */}
+          <div className="md:col-span-3 flex flex-col gap-4 min-h-0"> 
+            <Card className="flex-shrink-0"> 
               <CardHeader>
                 <CardTitle className="text-base">Platform Details</CardTitle>
               </CardHeader>
@@ -402,14 +409,14 @@ export default function EditPlatformPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="flex-1 flex flex-col min-h-0"> {/* Component Palette - should grow and scroll */}
+            <Card className="flex-1 flex flex-col min-h-0"> 
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-base flex items-center gap-1">
                   <PaletteIcon className="h-4 w-4 text-primary" /> Component Palette
                 </CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1">
-                <CardContent className="space-y-2 py-2"> {/* Adjusted padding */}
+                <CardContent className="space-y-2 py-2"> 
                   {isLoading && globalComponents.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-4" />}
                   {!isLoading && globalComponents.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No global components defined.</p>}
                   {globalComponents.map(comp => (
@@ -430,14 +437,15 @@ export default function EditPlatformPage() {
             </Card>
           </div>
 
-          <div className="md:col-span-6 flex flex-col min-h-0"> {/* Canvas Column */}
+          <div className="md:col-span-6 flex flex-col min-h-0"> 
             <Card className="flex-1 flex flex-col border-2 border-dashed min-h-0">
               <CardHeader className="flex-shrink-0">
                   <CardTitle className="text-base">Canvas ({currentLayout?.name || 'No Layout'})</CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1 bg-muted/20 p-4 rounded-b-md">
-                {isLoading && componentInstances.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-10" />}
-                {!isLoading && componentInstances.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">Drag or add components here.</p>}
+                {isLoading && componentInstances.length === 0 && currentLayout && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-10" />}
+                {!isLoading && componentInstances.length === 0 && currentLayout && <p className="text-sm text-muted-foreground text-center py-10">Drag or add components here.</p>}
+                {!currentLayout && !isLoading && <p className="text-sm text-muted-foreground text-center py-10">No layout selected or found.</p>}
                 <SortableContext items={componentInstances.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   {componentInstances.map(instance => (
                     <SortablePlatformComponentItem
@@ -454,7 +462,7 @@ export default function EditPlatformPage() {
             </Card>
           </div>
 
-          <div className="md:col-span-3 flex flex-col min-h-0"> {/* Properties Panel Column */}
+          <div className="md:col-span-3 flex flex-col min-h-0"> 
             <Card className="flex-1 flex flex-col min-h-0">
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-base flex items-center gap-1">
@@ -463,7 +471,7 @@ export default function EditPlatformPage() {
                 {selectedComponentDefinition && <CardDescription className="text-xs truncate">{selectedComponentDefinition.displayName} (ID: ...{selectedComponentInstance?.id.slice(-4)})</CardDescription>}
               </CardHeader>
               <ScrollArea className="flex-1">
-                <CardContent className="space-y-3 py-2"> {/* Adjusted padding */}
+                <CardContent className="space-y-3 py-2"> 
                   {!selectedInstanceId && <p className="text-xs text-muted-foreground text-center py-4">Select a component on the canvas.</p>}
                   {selectedComponentInstance && selectedComponentDefinition && (
                     Object.entries(selectedComponentDefinition.configurablePropertiesSchema || {}).map(([propKey, propSchema]: [string, ConfigurablePropertySchema]) => (
@@ -505,7 +513,7 @@ export default function EditPlatformPage() {
                                 id={`prop-${propKey}`}
                                 checked={selectedComponentInstance.configuredValues[propKey] !== undefined ? !!selectedComponentInstance.configuredValues[propKey] : !!propSchema.defaultValue}
                                 onCheckedChange={(checked) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, checked)}
-                                className="h-4 w-auto data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                                className="h-4 w-auto data-[state=checked]:bg-primary data-[state=unchecked]:bg-input" // Ensure Switch styling is appropriate
                                 disabled={isSaving}
                             />
                             <Label htmlFor={`prop-${propKey}`} className="text-xs font-normal">{propSchema.helperText || propSchema.label || propKey}</Label>
@@ -532,7 +540,7 @@ export default function EditPlatformPage() {
                             onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
                             className="h-8 text-sm"
                             placeholder={propSchema.placeholder}
-                            disabled // For unhandled types, make it disabled to prevent unexpected input
+                            disabled // For unhandled types
                           />
                         )}
                         {propSchema.helperText && propSchema.type !== 'boolean' && <p className="text-xs text-muted-foreground mt-1">{propSchema.helperText}</p>}
@@ -549,4 +557,3 @@ export default function EditPlatformPage() {
     </DndContext>
   );
 }
-
