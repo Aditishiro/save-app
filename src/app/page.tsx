@@ -33,20 +33,22 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // We still send the verification email, but won't block login
         await sendEmailVerification(userCredential.user);
         toast({
           title: "Account Created",
-          description: "Verification email sent. Please check your inbox.",
+          description: "Verification email sent. Please check your inbox (optional for login).",
         });
         setIsSignUp(false); 
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        if (!userCredential.user.emailVerified) {
-          setError("Please verify your email before signing in. Another verification email has been sent.");
-          await sendEmailVerification(userCredential.user);
-          setIsLoading(false);
-          return;
-        }
+        // Removed the emailVerified check to allow sign-in without verification
+        // if (!userCredential.user.emailVerified) {
+        //   setError("Please verify your email before signing in. Another verification email has been sent.");
+        //   await sendEmailVerification(userCredential.user);
+        //   setIsLoading(false);
+        //   return;
+        // }
         router.push('/dashboard/my-forms');
       }
     } catch (authError: any) {
@@ -75,7 +77,6 @@ export default function LoginPage() {
           friendlyMessage = "The password is too weak. It must be at least 6 characters long.";
           break;
         default:
-          // Use Firebase's message if it's somewhat user-friendly and specific, otherwise our generic one.
           if (authError.message && !authError.message.toLowerCase().includes('internal-error') && !authError.message.toLowerCase().includes('network-request-failed')) {
             friendlyMessage = authError.message;
           }
@@ -109,7 +110,7 @@ export default function LoginPage() {
       if (resetError.code === 'auth/invalid-email') {
         friendlyMessage = "The email address provided for password reset is not valid.";
       } else if (resetError.code === 'auth/user-not-found') {
-         toast({ // Still show a generic success for user-not-found to prevent email enumeration
+         toast({
           title: "Password Reset Email Sent",
           description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
         });
