@@ -1,29 +1,42 @@
+
 // src/lib/firebase/config.ts
 
 // Early check for essential Firebase environment variables
-const requiredKeys: string[] = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
+const requiredKeysAndPurpose: { key: string, purpose: string }[] = [
+  { key: 'NEXT_PUBLIC_FIREBASE_API_KEY', purpose: 'API Key for Firebase services' },
+  { key: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', purpose: 'Authentication domain' },
+  { key: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID', purpose: 'Project Identifier' },
+  { key: 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET', purpose: 'Storage bucket for file uploads' },
+  { key: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', purpose: 'Cloud Messaging sender ID' },
+  { key: 'NEXT_PUBLIC_FIREBASE_APP_ID', purpose: 'Application Identifier' },
 ];
 
 let allRequiredKeysPresent = true;
-if (typeof window === 'undefined') { // Perform checks server-side or during build
-  console.log("Performing Firebase config checks...");
-  requiredKeys.forEach(key => {
+
+// This check runs when the module is loaded, typically on server start.
+if (typeof process !== 'undefined' && process.env) {
+  console.log("\n[FormFlow Firebase DEBUG] Performing Firebase config checks (src/lib/firebase/config.ts)...");
+  console.log("[FormFlow Firebase DEBUG] These checks run when the server starts or this module is first loaded.");
+  console.log("[FormFlow Firebase DEBUG] If variables are reported missing, ensure your '.env.local' file is in the project root, correctly formatted, and that you have RESTARTED your Next.js development server.\n");
+
+  requiredKeysAndPurpose.forEach(({ key, purpose }) => {
+    console.log(`[FormFlow Firebase DEBUG] Checking for ${key} (${purpose})...`);
     if (!process.env[key]) {
-      console.warn(`Firebase config warning: Environment variable ${key} is missing. Firebase might not initialize correctly or fully.`);
+      console.error(`[FormFlow Firebase DEBUG] CRITICAL WARNING: Environment variable ${key} is MISSING.`);
       allRequiredKeysPresent = false;
+    } else {
+      console.log(`[FormFlow Firebase DEBUG] Environment variable ${key} is PRESENT (starts with: ${process.env[key]?.substring(0, 5)}...).`);
     }
   });
 
   if (!allRequiredKeysPresent) {
-    console.error("CRITICAL: One or more required Firebase environment variables are missing. Please check your .env.local file (and ensure it's loaded by restarting the dev server if needed) and your Firebase project settings.");
+    console.error("\n[FormFlow Firebase DEBUG] CRITICAL ERROR: One or more required Firebase environment variables are missing from the server's environment. Firebase WILL FAIL to initialize correctly.");
+    console.error("[FormFlow Firebase DEBUG] PLEASE VERIFY THE FOLLOWING:");
+    console.error("  1. Your '.env.local' file exists in the project ROOT directory.");
+    console.error("  2. It contains all necessary NEXT_PUBLIC_FIREBASE_... variables with correct values from your Firebase project console.");
+    console.error("  3. You have COMPLETELY RESTARTED your Next.js development server (e.g., Ctrl+C and then 'npm run dev').\n");
   } else {
-    console.log("All required Firebase environment variables seem to be present.");
+    console.log("\n[FormFlow Firebase DEBUG] All required Firebase environment variables seem to be present in the server's environment. Proceeding to build firebaseConfig.\n");
   }
 }
 

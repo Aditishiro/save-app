@@ -7,11 +7,11 @@ import { getPerformance, type FirebasePerformance } from 'firebase/performance';
 import { getAnalytics, isSupported as isAnalyticsSupported, type Analytics } from 'firebase/analytics';
 import { firebaseConfig } from './config';
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let performanceInstance: FirebasePerformance | null = null; // Renamed to avoid conflict
-let analyticsInstance: Analytics | null = null; // Renamed to avoid conflict
+let appInstance: FirebaseApp; // Renamed to avoid conflict with potential global 'app'
+let authInstance: Auth; // Renamed
+let dbInstance: Firestore; // Renamed
+let performanceService: FirebasePerformance | null = null; // Renamed
+let analyticsService: Analytics | null = null; // Renamed
 
 // Log the configuration object that will be used to initialize Firebase
 // THIS IS FOR DIAGNOSTIC PURPOSES.
@@ -21,8 +21,8 @@ console.log("[FormFlow Firebase DEBUG] Attempting to initialize Firebase with th
 if (!firebaseConfig || !firebaseConfig.apiKey) {
   const errorMessage = "[FormFlow Firebase CRITICAL INIT ERROR] The firebaseConfig object is missing or the apiKey is not defined within it. This usually means the environment variables (e.g., NEXT_PUBLIC_FIREBASE_API_KEY from .env.local) were not loaded correctly or are missing. Please ensure your .env.local file is correctly set up in the project root and that you have restarted your Next.js development server.";
   console.error(errorMessage);
-  // For server-side, console.error is appropriate.
-  // If this needs to halt client-side execution, throwing an error here would be necessary.
+  // Throw an error to halt further execution if config is critically flawed
+  throw new Error(errorMessage);
 } else {
   console.log("[FormFlow Firebase DEBUG] Firebase API Key found in firebaseConfig object. Key starts with: ", firebaseConfig.apiKey.substring(0, 5) + "..."); // Log a snippet
 }
@@ -32,7 +32,7 @@ if (getApps().length === 0) {
   try {
     // Log the key being used immediately before initialization
     console.log("[FormFlow Firebase DEBUG] Initializing Firebase app. API key being used starts with: ", firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 5) + "..." : "API KEY IS MISSING/UNDEFINED AT THIS POINT");
-    app = initializeApp(firebaseConfig);
+    appInstance = initializeApp(firebaseConfig);
     console.log("[FormFlow Firebase DEBUG] Firebase app initialized successfully.");
   } catch (e) {
     console.error("[FormFlow Firebase DEBUG] Firebase initialization error during initializeApp(firebaseConfig):", e);
@@ -40,17 +40,17 @@ if (getApps().length === 0) {
     throw e;
   }
 } else {
-  app = getApps()[0]!;
+  appInstance = getApps()[0]!;
   console.log("[FormFlow Firebase DEBUG] Firebase app already initialized, getting existing instance.");
 }
 
-auth = getAuth(app);
-db = getFirestore(app);
+authInstance = getAuth(appInstance);
+dbInstance = getFirestore(appInstance);
 
 if (typeof window !== 'undefined') {
   // Initialize Performance and Analytics only on the client side
   try {
-    performanceInstance = getPerformance(app);
+    performanceService = getPerformance(appInstance);
     console.log("[FormFlow Firebase DEBUG] Firebase Performance Monitoring initialized.");
   } catch (e) {
     console.warn("[FormFlow Firebase DEBUG] Firebase Performance Monitoring could not be initialized:", e);
@@ -59,7 +59,7 @@ if (typeof window !== 'undefined') {
   isAnalyticsSupported().then((supported) => {
     if (supported) {
       try {
-        analyticsInstance = getAnalytics(app);
+        analyticsService = getAnalytics(appInstance);
         console.log("[FormFlow Firebase DEBUG] Firebase Analytics initialized.");
       } catch (e) {
         console.warn("[FormFlow Firebase DEBUG] Firebase Analytics (including Crashlytics for web) could not be initialized:", e);
@@ -73,4 +73,4 @@ if (typeof window !== 'undefined') {
 }
 
 // Export the initialized instances using the renamed local variables
-export { app, auth, db, performanceInstance as performance, analyticsInstance as analytics };
+export { appInstance as app, authInstance as auth, dbInstance as db, performanceService as performance, analyticsService as analytics };
