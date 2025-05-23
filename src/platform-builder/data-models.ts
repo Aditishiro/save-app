@@ -26,7 +26,7 @@ import type { Timestamp } from 'firebase/firestore';
  * Defines the schema for a single configurable property of a Global UI Component.
  */
 export interface ConfigurablePropertySchema {
-  type: 'string' | 'number' | 'boolean' | 'color' | 'json' | 'text' | 'textarea' | 'dropdown' | 'file' | 'image' | 'icon' | 'eventHandler' | 'dataSource';
+  type: 'string' | 'number' | 'boolean' | 'color' | 'json' | 'text' | 'textarea' | 'dropdown' | 'file' | 'image' | 'icon' | 'eventHandler' | 'dataSource' | 'object';
   label: string; // User-friendly label for this property in the builder UI.
   defaultValue?: any;
   options?: string[]; // For 'dropdown' type to list available choices.
@@ -41,6 +41,10 @@ export interface ConfigurablePropertySchema {
     max?: number; // For number types
   };
   group?: string; // Optional grouping for properties in the UI (e.g., "Appearance", "Data", "Behavior").
+  // For 'object' type, defines nested properties
+  properties?: {
+    [propertyName: string]: ConfigurablePropertySchema;
+  };
 }
 
 /**
@@ -53,7 +57,7 @@ export interface GlobalComponentDefinition {
   type: string; // A unique identifier for the component type (e.g., 'Button', 'DataTable', 'HeroSection'). Used by the rendering engine.
   displayName: string; // User-friendly name for display in the component palette.
   description?: string; // Brief description of the component's purpose.
-  iconUrl?: string; // URL (ideally Cloud Storage download URL) for an icon representing this component in the palette.
+  iconUrl?: string; // URL (ideally Cloud Storage download URL) for an icon representing this component in the palette. Data URI also possible for simple icons.
   tags?: string[]; // e.g., ['input', 'display', 'layout'] for filtering in palette.
 
   // Defines the properties that can be configured for this component type.
@@ -65,7 +69,7 @@ export interface GlobalComponentDefinition {
   // Default HTML/JSX-like template structure or rendering hints for the component.
   // This could be a string, or a more structured representation if using a specific templating engine.
   // Storing this as a string and parsing it, or using a more structured format, are options.
-  template?: string;
+  template?: string; // Example: "<button style={{backgroundColor: {{props.color}} }} onClick={{props.onClickAction}}>{{props.label}}</button>"
 
   createdAt?: Timestamp;
   lastModified?: Timestamp;
@@ -79,8 +83,10 @@ export interface GlobalComponentDefinition {
 export interface PlatformComponentInstance {
   id: string; // Matches document ID for this instance.
   definitionId: string; // Reference to GlobalComponentDefinition.id, indicating which global component this is an instance of.
+  type: string; // Denormalized from GlobalComponentDefinition.type for easier rendering.
   tenantId: string; // The tenant owning this platform and component instance.
   platformId: string; // The platform this component instance belongs to.
+  layoutId: string; // The layout this component instance belongs to.
 
   // Specific values for the configurable properties, overriding defaults from GlobalComponentDefinition.
   // Keys should match those in GlobalComponentDefinition.configurablePropertiesSchema.
@@ -90,23 +96,22 @@ export interface PlatformComponentInstance {
   };
 
   // Positional/styling information relative to the platform layout or parent component.
-  // This could define grid placement, order, custom CSS overrides, etc.
-  layoutInfo?: {
-    parentId?: string | null; // ID of parent component instance if nested, null for root-level.
-    order?: number; // Order among siblings.
-    // Example layout properties (could be much more complex, e.g., grid-specific like gridRow, gridCol):
-    width?: string | number;
-    height?: string | number;
-    alignment?: string;
-    customCss?: string;
-  };
+  order: number; // Order among siblings within the same layout/parent.
+  parentId?: string | null; // ID of parent component instance if nested, null for root-level on a layout.
+  // Example layout properties (could be much more complex, e.g., grid-specific like gridRow, gridCol):
+  // width?: string | number;
+  // height?: string | number;
+  // alignment?: string;
+  // customCss?: string;
+  
   createdAt?: Timestamp;
   lastModified?: Timestamp;
 }
 
 /**
- * Represents the layout and structure of a specific page within a user-built platform.
- * Stored in Cloud Firestore at: /platforms/{platformId}/layouts/{layoutId} (e.g., layoutId could be 'homepage', 'dashboard_v1')
+ * Represents the layout and structure of a specific page/view within a user-built platform.
+ * Stored in Cloud Firestore at: /platforms/{platformId}/layouts/{layoutId}
+ * (e.g., layoutId could be 'homepage', 'dashboard_v1')
  */
 export interface PlatformLayout {
   id: string; // Matches document ID, e.g., 'mainPage', 'productDetails'.
@@ -115,10 +120,14 @@ export interface PlatformLayout {
   name: string; // User-friendly name for the layout (e.g., 'Homepage', 'User Dashboard').
   routePath?: string; // e.g., '/', '/profile', '/products/:productId'. Used for routing within the rendered platform.
 
-  // Defines the hierarchy and arrangement of component instances on this layout.
-  // Could be a JSON string representing a tree structure, or a list of root component instance IDs.
-  // Example: A JSON string representing an array of { instanceId: string, children: [...] }
-  structureJson?: string;
+  // Defines the root-level component instances for this layout, ordered by their 'order' property.
+  // For nested structures, child components would reference their parentId.
+  // The actual PlatformComponentInstance documents are fetched separately.
+  // This field primarily indicates which components belong to this layout.
+  // We can query PlatformComponentInstance collection: where('layoutId', '==', layout.id).orderBy('order')
+  // No specific structure needs to be stored here if we query.
+  // However, if we want to explicitly list root components:
+  // rootComponentInstanceIds?: string[]; // List of IDs of root-level PlatformComponentInstances
 
   // Platform-wide theme overrides or settings specific to this layout.
   themeOverrides?: {
@@ -139,17 +148,15 @@ export interface PlatformLayout {
  * Represents metadata and core configurations for a tenant.
  * Stored in Cloud Firestore at: /tenants/{tenantId}
  * This collection holds top-level information for each distinct tenant using the platform builder.
+ * Platforms belonging to a tenant are identified by querying the '/platforms' collection
+ * where 'PlatformData.tenantId' matches this tenant's ID.
  */
 export interface TenantMetadata {
   id: string; // Matches document ID (e.g., derived from auth or a unique name like a slug).
   name: string; // Company name or tenant display name.
   adminUids: string[]; // List of UIDs for tenant administrators.
   subscriptionStatus?: 'active' | 'trial' | 'inactive' | 'pending_setup';
-  // Other tenant-specific settings, e.g., custom domain for their platforms, feature flags.
   domains?: string[]; // Custom domains associated with this tenant's platforms.
-  // Note: References to specific platforms owned by this tenant are typically achieved by
-  // querying the '/platforms' collection where 'PlatformData.tenantId' matches this tenant's ID,
-  // rather than storing an array of platformIds here, for better scalability.
   createdAt?: Timestamp;
   lastModified?: Timestamp;
 }
@@ -162,12 +169,11 @@ export interface TenantMetadata {
  */
 export interface TenantUser {
   id: string; // Matches Firebase Auth UID.
-  // tenantId: string; // Implicitly defined by the document path. Can be added for denormalization if needed.
-  email: string; // User's email (should be verified for security).
+  // tenantId: string; // Implicitly defined by the document path.
+  email: string; // User's email.
   displayName?: string;
-  photoURL?: string; // Profile picture URL (ideally Cloud Storage download URL).
-  roles: string[]; // e.g., ['tenant_admin', 'platform_editor', 'platform_viewer'] - roles specific to this tenant.
-  // Other user preferences or data relevant to their activity within the tenant.
+  photoURL?: string; // Profile picture URL.
+  roles: string[]; // e.g., ['tenant_admin', 'platform_editor', 'platform_viewer'].
   lastLoginAt?: Timestamp;
   createdAt?: Timestamp;
   lastModified?: Timestamp;
@@ -182,7 +188,7 @@ export interface PlatformData {
     tenantId: string; // The ID of the tenant (from TenantMetadata.id) that owns this platform.
     name: string; // User-friendly name of the platform.
     description?: string; // Optional description.
-    defaultLayoutId?: string; // ID of the primary layout/page for this platform.
+    defaultLayoutId?: string; // ID of the primary layout/page for this platform (e.g., 'main').
     platformAdmins?: string[]; // User UIDs with admin rights specifically for this platform.
     platformEditors?: string[]; // User UIDs with editor rights specifically for this platform.
     status: 'draft' | 'published' | 'archived' | 'maintenance';
@@ -194,5 +200,3 @@ export interface PlatformData {
     createdAt?: Timestamp;
     lastModified?: Timestamp;
 }
-
-    
