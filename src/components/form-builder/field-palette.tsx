@@ -3,11 +3,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Type, Sigma, List, CheckSquare, FileUp, CalendarDays, Heading1, Palette, TextareaIcon } from "lucide-react"; // Added TextareaIcon
+import { Type, Sigma, List, CheckSquare, FileUp, CalendarDays, Heading1, Palette, ClipboardType } from "lucide-react"; // Changed TextareaIcon to ClipboardType
 
 const fieldTypes = [
   { name: "Text", icon: Type, type: "text" },
-  { name: "Text Area", icon: TextareaIcon, type: "textarea" }, // Added Text Area
+  { name: "Text Area", icon: ClipboardType, type: "textarea" }, // Changed to ClipboardType
   { name: "Number", icon: Sigma, type: "number" },
   { name: "Dropdown", icon: List, type: "dropdown" },
   { name: "Checkbox", icon: CheckSquare, type: "checkbox" },

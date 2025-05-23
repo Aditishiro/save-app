@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { GripVertical, CheckCircle2, XCircle, EyeOff } from "lucide-react";
+import { GripVertical, CheckCircle2, XCircle, EyeOff } from "lucide-react"; // Corrected: Removed Palette which wasn't used
 
 export interface FormFieldData {
   id: string;
