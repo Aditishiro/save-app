@@ -6,9 +6,9 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Filter, Search, Eye, Loader2, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Status filter removed for now
+import { Download, Search, Eye, Loader2, AlertTriangle } from 'lucide-react';
+// import { Badge } from '@/components/ui/badge'; // Not used currently
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
+  // DialogTrigger, // Not used directly here
 } from "@/components/ui/dialog";
 
 interface SubmissionData {
@@ -28,8 +28,7 @@ interface SubmissionData {
   submitterId: string; // 'anonymous' or UID
   submissionDate: Timestamp;
   data: Record<string, any>; // The actual form field values
-  // Potentially add a status field here too if submissions can be reviewed/actioned
-  status?: 'New' | 'Reviewed' | 'Actioned'; 
+  status?: 'New' | 'Reviewed' | 'Actioned';
 }
 
 
@@ -41,30 +40,19 @@ export default function SubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionData | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // Example filter, not fully implemented with Firestore yet
+  // const [filterStatus, setFilterStatus] = useState('all'); // Status filter removed for now
 
   useEffect(() => {
     if (currentUser) {
       setIsLoading(true);
       setError(null);
-      // Fetch submissions for forms owned by the current user.
-      // This requires a more complex query if forms are not directly linked to submitter.
-      // For now, let's fetch all submissions and filter client-side or assume a 'submitterId' field.
-      // A better approach for scalability: query forms owned by user, then for each form, query submissions.
-      // Or, if submissions have ownerId of the form, query by that.
-
-      // Simplified: Fetching all submissions for demo purposes.
-      // In a real app, you'd want to only fetch submissions for forms the current user OWNS.
-      // This might involve:
-      // 1. Fetching all form IDs owned by the user.
-      // 2. Then making multiple queries for submissions for each formId, or using an 'in' query if formIds < 30.
-      // Or, denormalize formOwnerId onto each submission document.
-
+      // Fetch submissions.
+      // TODO: Implement robust fetching based on user's forms.
+      // This currently fetches all recent submissions for demo purposes.
+      // A scalable solution would involve querying forms owned by the user, then submissions for those forms,
+      // or denormalizing formOwnerId onto submission documents.
       const submissionsCollectionRef = collection(db, 'submissions');
-      // For now, just fetch recent submissions for any user, as an example.
-      // TODO: Implement robust fetching based on user's forms
       const q = query(submissionsCollectionRef, orderBy('submissionDate', 'desc'), limit(50));
-
 
       getDocs(q)
         .then((querySnapshot) => {
@@ -72,8 +60,6 @@ export default function SubmissionsPage() {
             id: doc.id,
             ...doc.data(),
           } as SubmissionData));
-          // If you need to filter by forms currentUser owns, do it here after fetching,
-          // or ideally, structure data/queries to allow this server-side.
           setSubmissions(fetchedSubmissions);
         })
         .catch((err) => {
@@ -94,23 +80,39 @@ export default function SubmissionsPage() {
     setIsViewDialogOpen(true);
   };
 
-  const formatDate = (timestamp: Timestamp | undefined) => {
-    if (!timestamp) return 'N/A';
-    return new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000).toLocaleString();
+  const formatDate = (timestamp: Timestamp | undefined | null) => {
+    if (!timestamp || typeof timestamp.toDate !== 'function') return 'N/A';
+    try {
+      return new Date(timestamp.toDate()).toLocaleString();
+    } catch (e) {
+      // Fallback for older Timestamp-like objects that might not have toDate()
+      if (timestamp.seconds) {
+         return new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000).toLocaleString();
+      }
+      return 'Invalid Date';
+    }
   };
   
-  // Basic client-side filtering for demo
+  // Client-side filtering
   const filteredSubmissions = submissions.filter(sub => {
+    if (!sub) return false;
     const lowerSearchTerm = searchTerm.toLowerCase();
-    const matchesSearch = 
-        sub.formTitle?.toLowerCase().includes(lowerSearchTerm) ||
-        sub.id.toLowerCase().includes(lowerSearchTerm) ||
-        (typeof sub.submitterId === 'string' && sub.submitterId.toLowerCase().includes(lowerSearchTerm)) ||
-        Object.values(sub.data).some(val => String(val).toLowerCase().includes(lowerSearchTerm));
-
-    const matchesStatus = filterStatus === 'all' || (sub.status && sub.status.toLowerCase() === filterStatus);
     
-    return matchesSearch ; // && matchesStatus (add status filter later)
+    // Check basic fields
+    const matchesBasicFields = 
+        sub.formTitle?.toLowerCase().includes(lowerSearchTerm) ||
+        sub.id?.toLowerCase().includes(lowerSearchTerm) ||
+        (typeof sub.submitterId === 'string' && sub.submitterId.toLowerCase().includes(lowerSearchTerm));
+
+    if (matchesBasicFields) return true;
+
+    // Check data object values
+    if (sub.data && typeof sub.data === 'object') {
+      return Object.values(sub.data).some(val => 
+        String(val).toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+    return false;
   });
 
 
@@ -154,28 +156,12 @@ export default function SubmissionsPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             type="search" 
-            placeholder="Search submissions by ID, form title, submitter, or content..." 
+            placeholder="Search by ID, form title, submitter, or content..." 
             className="pl-8 rounded-md w-full" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        {/* Example status filter - not fully implemented against Firestore
-        <Select defaultValue="all" onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-[180px] rounded-md">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="New">New</SelectItem>
-            <SelectItem value="Reviewed">Reviewed</SelectItem>
-            <SelectItem value="Actioned">Actioned</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" className="w-full sm:w-auto rounded-md" disabled>
-            <Filter className="mr-2 h-4 w-4" /> Apply Filters
-        </Button>
-        */}
       </div>
 
       <div className="rounded-lg border shadow-sm">
@@ -186,6 +172,7 @@ export default function SubmissionsPage() {
               <TableHead>Form Title</TableHead>
               <TableHead>Submitter ID</TableHead>
               <TableHead>Date</TableHead>
+              {/* <TableHead>Status</TableHead> */} {/* Status column removed for now */}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -193,9 +180,16 @@ export default function SubmissionsPage() {
             {filteredSubmissions.length > 0 ? filteredSubmissions.map((submission) => (
               <TableRow key={submission.id}>
                 <TableCell className="font-medium truncate max-w-[150px]" title={submission.id}>{submission.id}</TableCell>
-                <TableCell className="truncate max-w-[200px]" title={submission.formTitle}>{submission.formTitle}</TableCell>
-                <TableCell className="truncate max-w-[150px]" title={submission.submitterId}>{submission.submitterId === currentUser?.uid ? "You" : submission.submitterId}</TableCell>
+                <TableCell className="truncate max-w-[200px]" title={submission.formTitle}>{submission.formTitle || 'N/A'}</TableCell>
+                <TableCell className="truncate max-w-[150px]" title={submission.submitterId}>
+                  {submission.submitterId === currentUser?.uid ? "You" : (submission.submitterId || 'anonymous')}
+                </TableCell>
                 <TableCell>{formatDate(submission.submissionDate)}</TableCell>
+                {/* <TableCell>
+                  <Badge variant={submission.status === 'Reviewed' ? 'secondary' : submission.status === 'Actioned' ? 'outline' : 'default'}>
+                    {submission.status || 'New'}
+                  </Badge>
+                </TableCell> */}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" onClick={() => handleViewSubmission(submission)}>
                     <Eye className="mr-2 h-4 w-4"/> View
@@ -204,7 +198,7 @@ export default function SubmissionsPage() {
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center"> {/* Adjusted colSpan */}
                   No submissions found matching your criteria.
                 </TableCell>
               </TableRow>
@@ -219,21 +213,23 @@ export default function SubmissionsPage() {
             <DialogHeader>
               <DialogTitle>Submission Details: {selectedSubmission.id}</DialogTitle>
               <DialogDescription>
-                Form: {selectedSubmission.formTitle} | Submitted: {formatDate(selectedSubmission.submissionDate)}
+                Form: {selectedSubmission.formTitle || 'N/A'} | Submitted: {formatDate(selectedSubmission.submissionDate)}
               </DialogDescription>
             </DialogHeader>
             <div className="mt-4 max-h-[60vh] overflow-y-auto space-y-3 pr-2">
-              {Object.entries(selectedSubmission.data).map(([key, value]) => {
-                const fieldLabel = formConfigForSubmission(selectedSubmission.formId)?.fields.find(f => f.id === key)?.label || key;
-                return (
-                  <div key={key} className="grid grid-cols-3 gap-2 items-start">
-                    <span className="font-medium text-sm text-muted-foreground col-span-1 capitalize">{fieldLabel}:</span>
+              {selectedSubmission.data && Object.entries(selectedSubmission.data).map(([key, value]) => (
+                  <div key={key} className="grid grid-cols-3 gap-2 items-start py-1 border-b border-border last:border-b-0">
+                    <span className="font-medium text-sm text-muted-foreground col-span-1 capitalize break-words">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
                     <span className="text-sm col-span-2 break-words">
-                        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value) || <span className="italic text-muted-foreground/70">Not provided</span>}
+                        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : 
+                         typeof value === 'object' && value !== null ? JSON.stringify(value) :
+                         String(value) || <span className="italic text-muted-foreground/70">Not provided</span>}
                     </span>
                   </div>
-                );
-              })}
+                ))}
+              {!selectedSubmission.data || Object.keys(selectedSubmission.data).length === 0 && (
+                <p className="text-sm text-muted-foreground">No data submitted or data is empty.</p>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -241,28 +237,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
-// Helper function to potentially get form config for labels - this is inefficient.
-// Ideally, field labels would be stored with submission or fetched once.
-// This is a placeholder and should be optimized in a real app.
-let formConfigsCache: Record<string, { fields: FormFieldData[] } | null> = {};
-const formConfigForSubmission = (formId: string): { fields: FormFieldData[] } | null => {
-  // This is a very basic cache. In a real app, use a more robust caching strategy
-  // or fetch this information differently.
-  // For this demo, it will try to use a mock or previously fetched config.
-  // This part is NOT robust for production.
-  if (formConfigsCache[formId]) return formConfigsCache[formId];
-
-  // Try to find in mock-form-data if we used it (illustrative, not a good pattern for prod)
-  // This is a hacky example:
-  // const mockForm = (MOCK_FORM_STORE_ANALYTICS as any)[formId];
-  // if (mockForm && mockForm.formConfiguration) {
-  //   try {
-  //     const parsed = JSON.parse(mockForm.formConfiguration);
-  //     formConfigsCache[formId] = parsed;
-  //     return parsed;
-  //   } catch { /* ignore */ }
-  // }
-  return null; // Should ideally fetch form config if not available
-};
-
