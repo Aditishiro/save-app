@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, Loader2, Mail } from "lucide-react"; // Added Mail icon
+import { Briefcase, Loader2, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth'; // Added sendPasswordResetEmail
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,8 +20,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [showPasswordReset, setShowPasswordReset] = useState(false); // State for password reset UI
-  const [resetEmail, setResetEmail] = useState(''); // State for password reset email input
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   const router = useRouter();
   const { toast } = useToast();
 
@@ -60,20 +60,26 @@ export default function LoginPage() {
           friendlyMessage = "This user account has been disabled.";
           break;
         case 'auth/user-not-found':
-        case 'auth/invalid-credential': // Covers wrong email or password in newer SDK versions
-          friendlyMessage = "Invalid email or password.";
+          friendlyMessage = "No account found with this email address.";
           break;
         case 'auth/wrong-password':
           friendlyMessage = "Incorrect password. Please try again.";
           break;
+        case 'auth/invalid-credential':
+           friendlyMessage = "Invalid email or password. Please check your credentials and try again.";
+          break;
         case 'auth/email-already-in-use':
-          friendlyMessage = "This email is already in use. Try signing in.";
+          friendlyMessage = "This email is already in use. Try signing in or use a different email.";
           break;
         case 'auth/weak-password':
-          friendlyMessage = "The password is too weak. It must be at least 6 characters.";
+          friendlyMessage = "The password is too weak. It must be at least 6 characters long.";
           break;
         default:
-          friendlyMessage = authError.message || friendlyMessage;
+          // Use Firebase's message if it's somewhat user-friendly and specific, otherwise our generic one.
+          if (authError.message && !authError.message.toLowerCase().includes('internal-error') && !authError.message.toLowerCase().includes('network-request-failed')) {
+            friendlyMessage = authError.message;
+          }
+          break;
       }
       setError(friendlyMessage);
     } finally {
@@ -95,21 +101,20 @@ export default function LoginPage() {
         title: "Password Reset Email Sent",
         description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
       });
-      setShowPasswordReset(false); // Hide reset UI
-      setResetEmail(''); // Clear reset email input
+      setShowPasswordReset(false); 
+      setResetEmail(''); 
     } catch (resetError: any) {
       console.error("Password Reset Error:", resetError);
       let friendlyMessage = "Could not send password reset email. Please try again.";
       if (resetError.code === 'auth/invalid-email') {
-        friendlyMessage = "The email address is not valid.";
+        friendlyMessage = "The email address provided for password reset is not valid.";
       } else if (resetError.code === 'auth/user-not-found') {
-        // It's common practice not to reveal if an email exists for security reasons
-        // So, we can show a generic success message even if user not found.
-        // However, for more direct feedback during dev, you might want to log it.
-         toast({
+         toast({ // Still show a generic success for user-not-found to prevent email enumeration
           title: "Password Reset Email Sent",
           description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
         });
+        setShowPasswordReset(false); 
+        setResetEmail('');
       } else {
         setError(friendlyMessage);
       }
@@ -265,3 +270,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
