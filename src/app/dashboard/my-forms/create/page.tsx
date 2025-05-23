@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea'; 
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 type FieldConfig = FormFieldData;
@@ -37,6 +37,7 @@ export default function CreateFormPage() {
 
 
   const handleAddField = useCallback((fieldType: string) => {
+    if (isSaving) return; // Prevent adding fields during save
     const newField: FieldConfig = {
       id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       type: fieldType,
@@ -48,26 +49,29 @@ export default function CreateFormPage() {
     };
     setFormFields((prevFields) => [...prevFields, newField]);
     setSelectedFieldId(newField.id);
-  }, []);
+  }, [isSaving]);
 
   const handleSelectField = useCallback((fieldId: string | null) => {
+    if (isSaving) return;
     setSelectedFieldId(fieldId);
-  }, []);
+  }, [isSaving]);
 
   const handleUpdateField = useCallback((fieldId: string, updates: Partial<FieldConfig>) => {
+    if (isSaving) return;
     setFormFields((prevFields) =>
       prevFields.map((field) =>
         field.id === fieldId ? { ...field, ...updates } : field
       )
     );
-  }, []);
+  }, [isSaving]);
 
   const handleDeleteField = useCallback((fieldId: string) => {
+    if (isSaving) return;
     setFormFields((prevFields) => prevFields.filter(field => field.id !== fieldId));
     if (selectedFieldId === fieldId) {
       setSelectedFieldId(null);
     }
-  }, [selectedFieldId]);
+  }, [selectedFieldId, isSaving]);
 
   const selectedFieldConfig = formFields.find(f => f.id === selectedFieldId) || null;
 
@@ -191,10 +195,10 @@ export default function CreateFormPage() {
           </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0"> {/* Changed flex-grow to flex-1 */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
           {!isPreviewMode && (
             <div className="md:col-span-3 min-h-0 flex flex-col">
-              <FieldPalette onAddField={handleAddField} />
+              <FieldPalette onAddField={handleAddField} isSaving={isSaving} />
             </div>
           )}
 
@@ -208,6 +212,7 @@ export default function CreateFormPage() {
                 selectedField={selectedFieldConfig}
                 onUpdateField={handleUpdateField}
                 onDeleteField={handleDeleteField}
+                isSaving={isSaving} 
               />
             </div>
           )}
@@ -216,4 +221,3 @@ export default function CreateFormPage() {
     </div>
   );
 }
-

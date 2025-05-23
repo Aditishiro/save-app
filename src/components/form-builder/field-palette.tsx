@@ -3,11 +3,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Type, Sigma, List, CheckSquare, FileUp, CalendarDays, Heading1, Palette, ClipboardType } from "lucide-react"; // Changed TextareaIcon to ClipboardType
+import { Type, Sigma, List, CheckSquare, FileUp, CalendarDays, Heading1, Palette, ClipboardType } from "lucide-react";
 
 const fieldTypes = [
   { name: "Text", icon: Type, type: "text" },
-  { name: "Text Area", icon: ClipboardType, type: "textarea" }, // Changed to ClipboardType
+  { name: "Text Area", icon: ClipboardType, type: "textarea" },
   { name: "Number", icon: Sigma, type: "number" },
   { name: "Dropdown", icon: List, type: "dropdown" },
   { name: "Checkbox", icon: CheckSquare, type: "checkbox" },
@@ -16,7 +16,12 @@ const fieldTypes = [
   { name: "Section Header", icon: Heading1, type: "header" },
 ];
 
-export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) => void }) {
+interface FieldPaletteProps {
+  onAddField: (fieldType: string) => void;
+  isSaving?: boolean; // Add isSaving prop
+}
+
+export function FieldPalette({ onAddField, isSaving }: FieldPaletteProps) {
   return (
     <Card className="flex-1 min-h-0 shadow-md overflow-y-auto flex flex-col">
       <CardHeader>
@@ -32,9 +37,10 @@ export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) =
             variant="outline"
             className="w-full justify-start"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent click from bubbling up if palette is ever nested
+              e.stopPropagation(); 
               onAddField(field.type);
             }}
+            disabled={isSaving} // Disable button if isSaving is true
           >
             <field.icon className="mr-2 h-4 w-4" />
             {field.name}
