@@ -10,37 +10,38 @@ import { firebaseConfig } from './config';
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
-let performance: FirebasePerformance | null = null;
-let analytics: Analytics | null = null;
+let performanceInstance: FirebasePerformance | null = null; // Renamed to avoid conflict
+let analyticsInstance: Analytics | null = null; // Renamed to avoid conflict
 
 // Log the configuration object that will be used to initialize Firebase
 // THIS IS FOR DIAGNOSTIC PURPOSES.
-console.log("Attempting to initialize Firebase with the following configuration:", firebaseConfig);
+console.log("[FormFlow Firebase DEBUG] Attempting to initialize Firebase with the following configuration:", JSON.stringify(firebaseConfig, null, 2));
 
 // Perform a more explicit check for the API key *before* calling initializeApp
 if (!firebaseConfig || !firebaseConfig.apiKey) {
-  console.error("CRITICAL FIREBASE INIT ERROR: The firebaseConfig object is missing or the apiKey is not defined within it. This usually means the environment variables (e.g., NEXT_PUBLIC_FIREBASE_API_KEY from .env.local) were not loaded correctly or are missing.");
-  console.error("Please ensure your .env.local file is correctly set up in the project root and that you have restarted your Next.js development server.");
-  // To prevent the Firebase SDK from throwing its own error, we can stop execution here
-  // or allow it to proceed so Firebase can log its specific error, which might also be helpful.
-  // For now, we'll let Firebase try to initialize to see its specific error, but this log should appear first.
+  const errorMessage = "[FormFlow Firebase CRITICAL INIT ERROR] The firebaseConfig object is missing or the apiKey is not defined within it. This usually means the environment variables (e.g., NEXT_PUBLIC_FIREBASE_API_KEY from .env.local) were not loaded correctly or are missing. Please ensure your .env.local file is correctly set up in the project root and that you have restarted your Next.js development server.";
+  console.error(errorMessage);
+  // For server-side, console.error is appropriate.
+  // If this needs to halt client-side execution, throwing an error here would be necessary.
 } else {
-  console.log("Firebase API Key found in firebaseConfig object. If Firebase errors persist, ensure it's the correct key for your project and has no restrictions preventing its use from this origin/app.");
+  console.log("[FormFlow Firebase DEBUG] Firebase API Key found in firebaseConfig object. Key starts with: ", firebaseConfig.apiKey.substring(0, 5) + "..."); // Log a snippet
 }
 
 
 if (getApps().length === 0) {
   try {
+    // Log the key being used immediately before initialization
+    console.log("[FormFlow Firebase DEBUG] Initializing Firebase app. API key being used starts with: ", firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 5) + "..." : "API KEY IS MISSING/UNDEFINED AT THIS POINT");
     app = initializeApp(firebaseConfig);
-    console.log("Firebase app initialized successfully.");
+    console.log("[FormFlow Firebase DEBUG] Firebase app initialized successfully.");
   } catch (e) {
-    console.error("Firebase initialization error during initializeApp(firebaseConfig):", e);
+    console.error("[FormFlow Firebase DEBUG] Firebase initialization error during initializeApp(firebaseConfig):", e);
     // Rethrow or handle as appropriate for your app's startup
     throw e;
   }
 } else {
   app = getApps()[0]!;
-  console.log("Firebase app already initialized, getting existing instance.");
+  console.log("[FormFlow Firebase DEBUG] Firebase app already initialized, getting existing instance.");
 }
 
 auth = getAuth(app);
@@ -49,26 +50,27 @@ db = getFirestore(app);
 if (typeof window !== 'undefined') {
   // Initialize Performance and Analytics only on the client side
   try {
-    performance = getPerformance(app);
-    console.log("Firebase Performance Monitoring initialized.");
+    performanceInstance = getPerformance(app);
+    console.log("[FormFlow Firebase DEBUG] Firebase Performance Monitoring initialized.");
   } catch (e) {
-    console.warn("Firebase Performance Monitoring could not be initialized:", e);
+    console.warn("[FormFlow Firebase DEBUG] Firebase Performance Monitoring could not be initialized:", e);
   }
   
   isAnalyticsSupported().then((supported) => {
     if (supported) {
       try {
-        analytics = getAnalytics(app);
-        console.log("Firebase Analytics initialized.");
+        analyticsInstance = getAnalytics(app);
+        console.log("[FormFlow Firebase DEBUG] Firebase Analytics initialized.");
       } catch (e) {
-        console.warn("Firebase Analytics (including Crashlytics for web) could not be initialized:", e);
+        console.warn("[FormFlow Firebase DEBUG] Firebase Analytics (including Crashlytics for web) could not be initialized:", e);
       }
     } else {
       // console.warn("Firebase Analytics is not supported in this environment."); 
     }
   }).catch(e => {
-    console.warn("Error checking Firebase Analytics support:", e);
+    console.warn("[FormFlow Firebase DEBUG] Error checking Firebase Analytics support:", e);
   });
 }
 
-export { app, auth, db, performance, analytics };
+// Export the initialized instances using the renamed local variables
+export { app, auth, db, performanceInstance as performance, analyticsInstance as analytics };
