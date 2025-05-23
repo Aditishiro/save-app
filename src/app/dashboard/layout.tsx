@@ -17,6 +17,7 @@ import {
   BarChart3,
   Loader2, 
   Package, // Added for Platform Admin section
+  Building, // Icon for Platform Builder
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -44,6 +45,10 @@ const navItems = [
   { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot },
   { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
+];
+
+const platformBuilderNavItems = [
+  { href: '/dashboard/platform-builder/my-platforms', label: 'My Platforms', icon: Building },
 ];
 
 const adminNavItems = [ // New section for admin-level platform management
@@ -78,6 +83,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // For now, simple check if user is 'admin' - replace with actual role check from custom claims
   const isPlatformAdmin = currentUser?.email === 'testadmin@example.com'; // Example: simple check
+  // For now, any logged in user can access platform builder. Refine with roles later.
+  const canAccessPlatformBuilder = !!currentUser;
+
 
   return (
     <SidebarProvider defaultOpen>
@@ -103,6 +111,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </SidebarMenuItem>
             ))}
             
+            {canAccessPlatformBuilder && (
+              <>
+                <SidebarMenuButton variant="ghost" className="my-2 pointer-events-none justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+                  <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Platform Builder</span>
+                </SidebarMenuButton>
+                {platformBuilderNavItems.map((item) => (
+                  <SidebarMenuItem key={item.label}>
+                    <Link href={item.href} passHref legacyBehavior>
+                      <SidebarMenuButton
+                        tooltip={item.label}
+                        asChild
+                      >
+                        <a>
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.label}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                ))}
+              </>
+            )}
+
             {isPlatformAdmin && ( // Conditionally render admin section
               <>
                 <SidebarMenuButton variant="ghost" className="my-2 pointer-events-none justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
