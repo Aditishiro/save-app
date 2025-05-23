@@ -14,7 +14,13 @@ export function FormCanvas({ fields, onSelectField }: FormCanvasProps) {
   return (
     <Card 
       className="flex-1 min-h-0 shadow-md overflow-y-auto p-6 bg-muted/30 flex flex-col"
-      onClick={() => onSelectField(null)} 
+      onClick={(e) => {
+        // Only deselect if the click is directly on the canvas Card itself,
+        // not on an element within it (like a FormFieldDisplay).
+        if (e.target === e.currentTarget) {
+          onSelectField(null);
+        }
+      }} 
     >
       {fields.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full border-2 border-dashed border-border rounded-lg">
@@ -32,4 +38,3 @@ export function FormCanvas({ fields, onSelectField }: FormCanvasProps) {
     </Card>
   );
 }
-

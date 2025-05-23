@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -5,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea"; // Assuming you have Textarea
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { GripVertical, CheckCircle2, XCircle, EyeOff } from "lucide-react";
 
 export interface FormFieldData {
   id: string;
-  type: string; // 'text', 'number', 'dropdown', 'checkbox', 'file', 'date', 'header'
+  type: string; // 'text', 'number', 'dropdown', 'checkbox', 'file', 'date', 'header', 'textarea'
   label: string;
   placeholder?: string;
   options?: string[]; // For dropdown
@@ -34,6 +35,11 @@ export function FormFieldDisplay({ field, isSelected, onClick }: FormFieldDispla
   let stateBorderColor = "border-border";
   if (field.validationState === "validated") stateBorderColor = "border-success";
   if (field.validationState === "error") stateBorderColor = "border-destructive";
+
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation(); // Prevent click from bubbling up to parent (e.g., FormCanvas)
+    onClick(field.id);
+  };
 
   const renderFieldInput = () => {
     switch (field.type) {
@@ -80,7 +86,7 @@ export function FormFieldDisplay({ field, isSelected, onClick }: FormFieldDispla
     return (
       <Card
         className={cn(baseClasses, hiddenClasses, stateBorderColor, isSelected && selectedClasses, "bg-slate-100 dark:bg-slate-800 border-2")}
-        onClick={() => onClick(field.id)}
+        onClick={handleCardClick}
       >
         <CardContent className="p-3 flex items-center justify-between text-muted-foreground">
           <div className="flex items-center">
@@ -97,7 +103,7 @@ export function FormFieldDisplay({ field, isSelected, onClick }: FormFieldDispla
      return (
         <Card 
             className={cn(baseClasses, stateBorderColor, isSelected && selectedClasses, "bg-transparent shadow-none border-none")}
-            onClick={() => onClick(field.id)}
+            onClick={handleCardClick}
         >
             <CardContent className="p-3 flex items-center justify-between">
                 {renderFieldInput()}
@@ -111,7 +117,7 @@ export function FormFieldDisplay({ field, isSelected, onClick }: FormFieldDispla
   return (
     <Card
       className={cn(baseClasses, stateBorderColor, isSelected && selectedClasses, "hover:shadow-md border-2")}
-      onClick={() => onClick(field.id)}
+      onClick={handleCardClick}
     >
       <CardHeader className="p-3 flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">

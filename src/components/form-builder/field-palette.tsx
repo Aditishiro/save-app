@@ -3,10 +3,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Type, Sigma, List, CheckSquare, FileUp, CalendarDays, Heading1, Palette } from "lucide-react";
+import { Type, Sigma, List, CheckSquare, FileUp, CalendarDays, Heading1, Palette, TextareaIcon } from "lucide-react"; // Added TextareaIcon
 
 const fieldTypes = [
   { name: "Text", icon: Type, type: "text" },
+  { name: "Text Area", icon: TextareaIcon, type: "textarea" }, // Added Text Area
   { name: "Number", icon: Sigma, type: "number" },
   { name: "Dropdown", icon: List, type: "dropdown" },
   { name: "Checkbox", icon: CheckSquare, type: "checkbox" },
@@ -24,13 +25,16 @@ export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) =
           Field Palette
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 flex-1"> {/* Ensure CardContent can grow if Card is flex flex-col */}
+      <CardContent className="space-y-3 flex-1">
         {fieldTypes.map((field) => (
           <Button
             key={field.name}
             variant="outline"
             className="w-full justify-start"
-            onClick={() => onAddField(field.type)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent click from bubbling up if palette is ever nested
+              onAddField(field.type);
+            }}
           >
             <field.icon className="mr-2 h-4 w-4" />
             {field.name}
@@ -40,4 +44,3 @@ export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) =
     </Card>
   );
 }
-
