@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, Loader2 } from "lucide-react";
+import { Briefcase, Loader2, Mail } from "lucide-react"; // Added Mail icon
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth'; // Added sendPasswordResetEmail
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,7 +19,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false); // To toggle between Sign In and Sign Up
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false); // State for password reset UI
+  const [resetEmail, setResetEmail] = useState(''); // State for password reset email input
   const router = useRouter();
   const { toast } = useToast();
 
@@ -30,18 +32,14 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // Sign Up
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
         toast({
           title: "Account Created",
           description: "Verification email sent. Please check your inbox.",
         });
-        // Keep user on login page or redirect to a "please verify email" page
-        // For now, let's toggle back to sign in form.
         setIsSignUp(false); 
       } else {
-        // Sign In
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         if (!userCredential.user.emailVerified) {
           setError("Please verify your email before signing in. Another verification email has been sent.");
@@ -62,7 +60,8 @@ export default function LoginPage() {
           friendlyMessage = "This user account has been disabled.";
           break;
         case 'auth/user-not-found':
-          friendlyMessage = "No user found with this email.";
+        case 'auth/invalid-credential': // Covers wrong email or password in newer SDK versions
+          friendlyMessage = "Invalid email or password.";
           break;
         case 'auth/wrong-password':
           friendlyMessage = "Incorrect password. Please try again.";
@@ -77,6 +76,43 @@ export default function LoginPage() {
           friendlyMessage = authError.message || friendlyMessage;
       }
       setError(friendlyMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      setError("Please enter your email address for password reset.");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
+      });
+      setShowPasswordReset(false); // Hide reset UI
+      setResetEmail(''); // Clear reset email input
+    } catch (resetError: any) {
+      console.error("Password Reset Error:", resetError);
+      let friendlyMessage = "Could not send password reset email. Please try again.";
+      if (resetError.code === 'auth/invalid-email') {
+        friendlyMessage = "The email address is not valid.";
+      } else if (resetError.code === 'auth/user-not-found') {
+        // It's common practice not to reveal if an email exists for security reasons
+        // So, we can show a generic success message even if user not found.
+        // However, for more direct feedback during dev, you might want to log it.
+         toast({
+          title: "Password Reset Email Sent",
+          description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
+        });
+      } else {
+        setError(friendlyMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,78 +134,128 @@ export default function LoginPage() {
         <Card className="shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold tracking-tight">
-              {isSignUp ? "Create an Account" : "Welcome Back"}
+              {showPasswordReset ? "Reset Password" : (isSignUp ? "Create an Account" : "Welcome Back")}
             </CardTitle>
             <CardDescription>
-              {isSignUp ? "Sign up to start using FormFlow." : "Log in to your FormFlow account to continue."}
+              {showPasswordReset 
+                ? "Enter your email address and we'll send you a link to reset your password." 
+                : (isSignUp ? "Sign up to start using FormFlow." : "Log in to your FormFlow account to continue.")
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
               <Alert variant="destructive" className="mb-4">
-                <AlertTitle>Authentication Error</AlertTitle>
+                <AlertTitle>{showPasswordReset ? "Reset Error" : "Authentication Error"}</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <form onSubmit={handleAuthAction} className="space-y-6">
-              <div>
-                <Label htmlFor="email">Email address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="mt-1"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  {!isSignUp && (
-                    <div className="text-sm">
-                      <Link href="#" className="font-medium text-primary hover:text-primary/90">
-                        Forgot password?
-                      </Link>
-                    </div>
-                  )}
+            {showPasswordReset ? (
+              <form onSubmit={handlePasswordReset} className="space-y-6">
+                <div>
+                  <Label htmlFor="reset-email">Email address</Label>
+                  <Input
+                    id="reset-email"
+                    name="reset-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="mt-1"
+                    placeholder="you@example.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    disabled={isLoading}
+                  />
                 </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                  required
-                  className="mt-1"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
+                <div>
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <><Mail className="mr-2 h-4 w-4" /> Send Reset Link</>
+                    )}
+                  </Button>
+                </div>
+                 <p className="mt-8 text-center text-sm text-muted-foreground">
+                  Remembered your password?{" "}
+                  <Button variant="link" onClick={() => { setShowPasswordReset(false); setError(null); }} className="font-medium text-primary hover:text-primary/90 p-0 h-auto">
+                    Back to Sign In
+                  </Button>
+                </p>
+              </form>
+            ) : (
+              <form onSubmit={handleAuthAction} className="space-y-6">
+                <div>
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="mt-1"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
 
-              <div>
-                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                  {isLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    isSignUp ? "Sign Up" : "Sign In"
-                  )}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    {!isSignUp && (
+                      <div className="text-sm">
+                        <Button 
+                          type="button" 
+                          variant="link" 
+                          onClick={() => { setShowPasswordReset(true); setError(null); }} 
+                          className="font-medium text-primary hover:text-primary/90 p-0 h-auto text-xs sm:text-sm"
+                        >
+                          Forgot password?
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    required
+                    className="mt-1"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div>
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      isSignUp ? "Sign Up" : "Sign In"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {!showPasswordReset && (
+              <p className="mt-8 text-center text-sm text-muted-foreground">
+                {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+                <Button 
+                  variant="link" 
+                  onClick={() => { setIsSignUp(!isSignUp); setError(null); }} 
+                  className="font-medium text-primary hover:text-primary/90 p-0 h-auto"
+                >
+                  {isSignUp ? "Sign In" : "Sign Up"}
                 </Button>
-              </div>
-            </form>
-
-            <p className="mt-8 text-center text-sm text-muted-foreground">
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-              <Button variant="link" onClick={() => { setIsSignUp(!isSignUp); setError(null); }} className="font-medium text-primary hover:text-primary/90 p-0 h-auto">
-                {isSignUp ? "Sign In" : "Sign Up"}
-              </Button>
-            </p>
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
