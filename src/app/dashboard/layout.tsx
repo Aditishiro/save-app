@@ -16,7 +16,7 @@ import {
   Search,
   BarChart3,
   Loader2, 
-  Package, // Added for Platform Admin section
+  Package, 
   Building, // Icon for Platform Builder
 } from 'lucide-react';
 import {
@@ -51,7 +51,7 @@ const platformBuilderNavItems = [
   { href: '/dashboard/platform-builder/my-platforms', label: 'My Platforms', icon: Building },
 ];
 
-const adminNavItems = [ // New section for admin-level platform management
+const adminNavItems = [ 
   { href: '/dashboard/platform-admin/global-components', label: 'Global Components', icon: Package },
   // Add other platform admin links here, e.g., tenant management
 ];
