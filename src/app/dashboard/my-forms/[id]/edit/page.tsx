@@ -38,7 +38,7 @@ import {
 
 export default function EditFormPage() {
   const params = useParams();
-  const formId = params.id as string; // Type assertion
+  const formId = params.id as string; 
   const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -189,13 +189,13 @@ export default function EditFormPage() {
     const currentTags = tempTagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
 
     const updateData: Partial<FormDocument> = {
-      title: formTitle, // Use the main state version for title, desc, usecase for direct saves
+      title: formTitle, 
       description: formDescription,
       intendedUseCase: intendedUseCase,
       formConfiguration: formConfiguration,
       lastModified: serverTimestamp() as Timestamp,
-      isPublic: isPublic, // Use the main state version here
-      tags: tags, // Use the main state version here
+      isPublic: isPublic, 
+      tags: tags, 
     };
 
     if (newStatus) {
@@ -205,7 +205,7 @@ export default function EditFormPage() {
     try {
       await updateDoc(formDocRef, updateData);
       if (newStatus) setCurrentStatus(newStatus);
-      // Update main state if changes were from dialog, for non-status saves
+      
       setTags(currentTags); 
       setIsPublic(tempIsPublic);
 
@@ -351,19 +351,19 @@ export default function EditFormPage() {
         }
       />
 
-      <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0"> {/* flex-1 makes this take remaining space */}
         {!isPreviewMode && (
-          <div className="md:col-span-3 min-h-0">
+          <div className="md:col-span-3 min-h-0 flex flex-col">
             <FieldPalette onAddField={handleAddField} />
           </div>
         )}
 
-        <div className={isPreviewMode ? "md:col-span-12 min-h-0" : "md:col-span-6 min-h-0"}>
+        <div className={isPreviewMode ? "md:col-span-12 min-h-0 flex flex-col" : "md:col-span-6 min-h-0 flex flex-col"}>
           <FormCanvas fields={renderedFields} onSelectField={handleSelectField} />
         </div>
 
         {!isPreviewMode && (
-          <div className="md:col-span-3 min-h-0">
+          <div className="md:col-span-3 min-h-0 flex flex-col">
             <PropertiesPanel
               selectedField={selectedFieldConfig}
               onUpdateField={handleUpdateField}
@@ -375,3 +375,4 @@ export default function EditFormPage() {
     </div>
   );
 }
+

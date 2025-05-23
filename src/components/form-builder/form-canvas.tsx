@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,17 +6,15 @@ import { FileText } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface FormCanvasProps {
-  fields: ReactNode[]; // Array of field components
+  fields: ReactNode[]; 
   onSelectField: (fieldId: string | null) => void;
 }
 
 export function FormCanvas({ fields, onSelectField }: FormCanvasProps) {
-  // In a real implementation, fields would be rendered here
-  // and would be interactive (selectable, draggable)
   return (
     <Card 
-      className="h-full shadow-md overflow-y-auto p-6 bg-muted/30"
-      onClick={() => onSelectField(null)} // Deselect when clicking canvas background
+      className="flex-1 min-h-0 shadow-md overflow-y-auto p-6 bg-muted/30 flex flex-col"
+      onClick={() => onSelectField(null)} 
     >
       {fields.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full border-2 border-dashed border-border rounded-lg">
@@ -26,7 +25,6 @@ export function FormCanvas({ fields, onSelectField }: FormCanvasProps) {
       ) : (
         <div className="space-y-4">
           {fields.map((field, index) => (
-            // Each field component would handle its own selection via onClick e.g. onClick={(e) => { e.stopPropagation(); onSelectField(field.id); }}
             <div key={index}>{field}</div> 
           ))}
         </div>
@@ -34,3 +32,4 @@ export function FormCanvas({ fields, onSelectField }: FormCanvasProps) {
     </Card>
   );
 }
+

@@ -27,14 +27,14 @@ interface PropertiesPanelProps {
 export function PropertiesPanel({ selectedField, onUpdateField, onDeleteField }: PropertiesPanelProps) {
   if (!selectedField) {
     return (
-      <Card className="h-full shadow-md">
+      <Card className="flex-1 min-h-0 shadow-md flex flex-col"> {/* Added flex-1 min-h-0 flex flex-col */}
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Settings2 className="h-5 w-5 text-primary" />
             Properties
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1"> {/* Added flex-1 */}
           <p className="text-muted-foreground">Select a field to see its properties.</p>
         </CardContent>
       </Card>
@@ -60,20 +60,20 @@ export function PropertiesPanel({ selectedField, onUpdateField, onDeleteField }:
 
 
   return (
-    <Card className="h-full shadow-md overflow-y-auto"> {/* Added overflow-y-auto */}
+    <Card className="flex-1 min-h-0 shadow-md overflow-y-auto flex flex-col">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
           Properties: <span className="font-normal">{selectedField.label || selectedField.type}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="properties" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+      <CardContent className="flex-1"> {/* Ensure CardContent can grow */}
+        <Tabs defaultValue="properties" className="w-full flex flex-col h-full">
+          <TabsList className="grid w-full grid-cols-2 shrink-0">
             <TabsTrigger value="properties">Field Properties</TabsTrigger>
             <TabsTrigger value="logic">Conditional Logic</TabsTrigger>
           </TabsList>
-          <TabsContent value="properties" className="mt-4 space-y-4">
+          <TabsContent value="properties" className="mt-4 space-y-4 flex-1 overflow-y-auto"> {/* Allow content to scroll if needed */}
             <div>
               <Label htmlFor="fieldLabel">Field Label</Label>
               <Input 
@@ -118,7 +118,7 @@ export function PropertiesPanel({ selectedField, onUpdateField, onDeleteField }:
               </Button>
             </div>
           </TabsContent>
-          <TabsContent value="logic" className="mt-4">
+          <TabsContent value="logic" className="mt-4 flex-1 overflow-y-auto"> {/* Allow content to scroll */}
             <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-border rounded-lg p-4">
               <GitMerge className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-muted-foreground text-center text-sm">
@@ -132,3 +132,4 @@ export function PropertiesPanel({ selectedField, onUpdateField, onDeleteField }:
     </Card>
   );
 }
+

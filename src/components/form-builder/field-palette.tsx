@@ -17,14 +17,14 @@ const fieldTypes = [
 
 export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) => void }) {
   return (
-    <Card className="h-full shadow-md overflow-y-auto"> {/* Added overflow-y-auto */}
+    <Card className="flex-1 min-h-0 shadow-md overflow-y-auto flex flex-col">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Palette className="h-5 w-5 text-primary" />
           Field Palette
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 flex-1"> {/* Ensure CardContent can grow if Card is flex flex-col */}
         {fieldTypes.map((field) => (
           <Button
             key={field.name}
@@ -40,3 +40,4 @@ export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) =
     </Card>
   );
 }
+
