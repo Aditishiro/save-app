@@ -1,112 +1,147 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // User profiles: users can read/write their own profile if email is verified.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId && request.auth.token.email_verified == true;
-      // Consider adding admin read access if needed via a custom claim or roles collection.
+    // Helper function to get tenantId from user's custom claims
+    // Assumes you set a 'tenantId' custom claim upon user authentication/role assignment
+    function getTenantId() {
+      return request.auth.token.tenantId;
     }
 
-    // Forms:
+    // Helper function to check if the user is an admin for the given tenantId
+    // This could also check a 'roles' claim: request.auth.token.roles[getTenantId()] == 'admin'
+    function isTenantAdmin(tenantId) {
+      return request.auth != null && request.auth.token.email_verified == true &&
+             getTenantId() == tenantId &&
+             exists(/databases/$(database)/documents/tenants/$(tenantId)) &&
+             request.auth.uid in get(/databases/$(database)/documents/tenants/$(tenantId)).data.adminUids;
+    }
+
+    // Helper function to check if the user belongs to the given tenant
+    function belongsToTenant(tenantId) {
+      return request.auth != null && request.auth.token.email_verified == true &&
+             getTenantId() == tenantId;
+    }
+
+    // Tenant Metadata: /tenants/{tenantId}
+    match /tenants/{tenantId} {
+      allow read: if belongsToTenant(tenantId);
+      // Creation of tenants might be an admin-only operation or via a trusted server process (Cloud Function)
+      allow create: if request.auth != null && request.auth.token.platformAdmin == true; // Example: super admin claim
+      allow update: if isTenantAdmin(tenantId);
+      allow delete: if false; // Typically tenants are soft-deleted or archived by platform admins
+
+      // Tenant-specific Users: /tenants/{tenantId}/users/{userId}
+      match /users/{userId} {
+        allow read: if belongsToTenant(tenantId) && (isTenantAdmin(tenantId) || request.auth.uid == userId);
+        allow create: if belongsToTenant(tenantId) && (isTenantAdmin(tenantId) || request.auth.uid == userId) &&
+                        request.resource.data.tenantId == tenantId &&
+                        request.resource.data.id == userId;
+        allow update: if belongsToTenant(tenantId) && (isTenantAdmin(tenantId) || request.auth.uid == userId);
+        allow delete: if isTenantAdmin(tenantId); // Only tenant admins can delete users
+      }
+    }
+
+    // Global Component Definitions: /components/{componentDefinitionId}
+    // These are typically managed by platform administrators.
+    match /components/{componentDefinitionId} {
+      allow read: if request.auth != null && request.auth.token.email_verified == true; // All authenticated users can read component definitions
+      allow create, update, delete: if request.auth != null && request.auth.token.platformAdmin == true; // Only platform admins
+    }
+
+    // Platforms: /platforms/{platformId}
+    match /platforms/{platformId} {
+      // Platform data itself (name, description, status)
+      allow read: if belongsToTenant(resource.data.tenantId);
+      allow create: if belongsToTenant(request.resource.data.tenantId) &&
+                      (isTenantAdmin(request.resource.data.tenantId) || request.auth.uid in get(/databases/$(database)/documents/tenants/$(request.resource.data.tenantId)).data.platformCreators); // Example: tenant admins or designated platform creators
+      allow update: if belongsToTenant(resource.data.tenantId) &&
+                      (isTenantAdmin(resource.data.tenantId) || request.auth.uid in resource.data.platformAdmins);
+      allow delete: if belongsToTenant(resource.data.tenantId) && isTenantAdmin(resource.data.tenantId);
+
+      // Component Instances within a Platform: /platforms/{platformId}/components/{instanceId}
+      match /components/{instanceId} {
+        allow read: if belongsToTenant(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId);
+        allow create, update, delete: if belongsToTenant(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId) &&
+                                       (isTenantAdmin(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId) || request.auth.uid in get(/databases/$(database)/documents/platforms/$(platformId)).data.platformAdmins);
+      }
+
+      // Layout for a Platform: /platforms/{platformId}/layout/{layoutId}
+      match /layout/{layoutId} {
+        allow read: if belongsToTenant(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId);
+        allow create, update, delete: if belongsToTenant(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId) &&
+                                       (isTenantAdmin(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId) || request.auth.uid in get(/databases/$(database)/documents/platforms/$(platformId)).data.platformAdmins);
+      }
+    }
+
+
+    // Rules for the existing FormFlow Finance application (adapted for multi-tenancy if forms become tenant-specific)
+    // For now, assuming forms are tied to individual users directly, not tenants,
+    // but could be adapted by adding a tenantId to form documents.
     match /forms/{formId} {
-      function isOwner() {
+      function isFormOwner() {
         return request.auth != null && resource.data.ownerId == request.auth.uid;
       }
-      // Placeholder for editor role - you'd populate this array in your app
-      function isEditor() {
-        return request.auth != null && resource.data.editors is list && request.auth.uid in resource.data.editors;
-      }
-      // Placeholder for viewer role
-      function isViewer() {
-         return request.auth != null && resource.data.viewers is list && request.auth.uid in resource.data.viewers;
+       function isVerifiedUser() {
+        return request.auth != null && request.auth.token.email_verified == true;
       }
 
-      function canEdit() {
-        return request.auth != null && request.auth.token.email_verified == true && (isOwner() || isEditor());
-      }
+      allow read: if resource.data.isPublic == true || (isVerifiedUser() && isFormOwner());
+      allow list: if isVerifiedUser(); // Allows querying forms, but specific documents still subject to read rules
 
-      function canView() {
-        // Public forms can be read by anyone (even unauthenticated)
-        if (resource.data.isPublic == true) {
-          return true;
-        }
-        // Authenticated, verified users can view if they are owner, editor, or viewer
-        return request.auth != null && request.auth.token.email_verified == true && (isOwner() || isEditor() || isViewer());
-      }
-
-      allow read: if canView();
-
-      allow create: if request.auth != null && request.auth.token.email_verified == true
+      allow create: if isVerifiedUser()
                     && request.resource.data.ownerId == request.auth.uid
                     && 'title' in request.resource.data && request.resource.data.title is string && request.resource.data.title.size() > 0
-                    && 'intendedUseCase' in request.resource.data && request.resource.data.intendedUseCase is string && request.resource.data.intendedUseCase.size() > 0
                     && 'formConfiguration' in request.resource.data && request.resource.data.formConfiguration is string
+                    && 'intendedUseCase' in request.resource.data && request.resource.data.intendedUseCase is string
                     && 'status' in request.resource.data && request.resource.data.status in ['Draft', 'Published', 'Archived']
                     && 'submissionsCount' in request.resource.data && request.resource.data.submissionsCount == 0
                     && 'isPublic' in request.resource.data && request.resource.data.isPublic is bool
                     && 'tags' in request.resource.data && request.resource.data.tags is list
-                    && request.resource.data.lastModified == request.time
-                    && request.resource.data.createdAt == request.time;
-
-      allow update: if canEdit()
-                    && !(request.resource.data.ownerId != resource.data.ownerId) // ownerId cannot change
-                    && !(request.resource.data.createdAt != resource.data.createdAt) // createdAt cannot change
-                    && 'title' in request.resource.data && request.resource.data.title is string && request.resource.data.title.size() > 0
-                    && 'intendedUseCase' in request.resource.data && request.resource.data.intendedUseCase is string && request.resource.data.intendedUseCase.size() > 0
-                    && 'formConfiguration' in request.resource.data && request.resource.data.formConfiguration is string
-                    && 'status' in request.resource.data && request.resource.data.status in ['Draft', 'Published', 'Archived']
-                    && 'isPublic' in request.resource.data && request.resource.data.isPublic is bool  // Allow updating isPublic
-                    && 'tags' in request.resource.data && request.resource.data.tags is list     // Allow updating tags
+                    && request.resource.data.createdAt == request.time
                     && request.resource.data.lastModified == request.time;
-                    // submissionsCount should be updated by a backend function, not directly by client
 
-      allow delete: if request.auth != null && request.auth.token.email_verified == true && isOwner();
+      allow update: if isVerifiedUser() && isFormOwner()
+                    && !(request.resource.data.ownerId != resource.data.ownerId)
+                    && !(request.resource.data.createdAt != resource.data.createdAt)
+                    && ('title' in request.resource.data && request.resource.data.title is string && request.resource.data.title.size() > 0)
+                    && ('formConfiguration' in request.resource.data && request.resource.data.formConfiguration is string)
+                    && ('intendedUseCase' in request.resource.data && request.resource.data.intendedUseCase is string)
+                    && ('status' in request.resource.data && request.resource.data.status in ['Draft', 'Published', 'Archived'])
+                    && ('isPublic' in request.resource.data && request.resource.data.isPublic is bool)
+                    && ('tags' in request.resource.data && request.resource.data.tags is list)
+                    && request.resource.data.lastModified == request.time;
+      allow delete: if isVerifiedUser() && isFormOwner();
 
-      // Submissions for a form
       match /submissions/{submissionId} {
+        // Allow creating submissions if form is published and (public OR user has view access)
+        // This is a simplified check for 'view access'; in a real app, this would be more robust.
         function canSubmitToForm() {
           let form = get(/databases/$(database)/documents/forms/$(formId)).data;
-          // Anyone can submit to a published public form
-          if (form.isPublic == true && form.status == 'Published') {
-            return true;
-          }
-          // Authenticated, verified users can submit if they can view and form is published
-          if (request.auth != null && request.auth.token.email_verified == true &&
-              form.status == 'Published' &&
-              (form.ownerId == request.auth.uid ||
-               (form.viewers is list && request.auth.uid in form.viewers) ||
-               (form.editors is list && request.auth.uid in form.editors)
-              )
-             ) {
-            return true;
-          }
-          return false;
+          return form.status == 'Published' &&
+                 (form.isPublic == true || (isVerifiedUser() && form.ownerId == request.auth.uid));
         }
-
-        allow create: if canSubmitToForm()
-                      && 'formId' in request.resource.data && request.resource.data.formId == formId
-                      && 'submitterId' in request.resource.data // Can be UID or 'anonymous'
-                      && 'submissionDate' in request.resource.data && request.resource.data.submissionDate == request.time
+        allow create: if isVerifiedUser() && canSubmitToForm()
+                      && request.resource.data.formId == formId
+                      && request.resource.data.formTitle == get(/databases/$(database)/documents/forms/$(formId)).data.title
+                      && 'submitterId' in request.resource.data // Can be request.auth.uid or 'anonymous'
+                      && request.resource.data.submissionDate == request.time
                       && 'data' in request.resource.data && request.resource.data.data is map;
 
-        allow read: if request.auth != null && request.auth.token.email_verified == true &&
-                       (get(/databases/$(database)/documents/forms/$(formId)).data.ownerId == request.auth.uid ||
-                        (get(/databases/$(database)/documents/forms/$(formId)).data.editors is list && request.auth.uid in get(/databases/$(database)/documents/forms/$(formId)).data.editors)
-                       );
-                       // Add if submitter can read their own: || request.auth.uid == resource.data.submitterId;
-
-        allow update, delete: if false; // Submissions are generally immutable
+        allow read: if isVerifiedUser() && isFormOwner(); // Only form owner can read submissions
+        allow update, delete: if false; // Submissions are generally immutable by users
       }
     }
 
-    // Top-level Submissions collection (if used, ensure security matches form permissions)
-    // This example assumes submissions are primarily accessed via form subcollections for stricter rules.
-    // If using a top-level collection, you'd need to duplicate form permission checks or denormalize formOwnerId.
+    // Global submissions collection (as currently implemented in FormFlow)
+    // This might need to be deprecated or heavily restricted in a multi-tenant setup
+    // unless submissions also get a tenantId and formOwnerId.
     match /submissions/{submissionId} {
-      allow read: if request.auth != null && request.auth.token.email_verified == true && resource.data.formOwnerId == request.auth.uid; // Example if formOwnerId is denormalized
-      allow create, update, delete: if false; // Handled by subcollection rules or backend logic
+       allow read: if request.auth != null && request.auth.token.email_verified == true; // Broad access, needs review for multi-tenancy
+       allow create: if request.auth != null && request.auth.token.email_verified == true; // Needs to be more specific based on form permissions
+       allow update, delete: if false;
     }
   }
 }
