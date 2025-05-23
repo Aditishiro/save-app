@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation'; // Import useParams
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,113 +11,113 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/common/page-header';
-import { FormFieldData } from '@/components/form-builder/form-field-display'; // Re-use interface
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { FormFieldData } from '@/components/form-builder/form-field-display';
+import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { db } from '@/lib/firebase/firebase';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { FormDocument } from '../page'; // Import from parent if available or define locally
 
-interface MockFormPreview {
+// If FormDocument is not available from parent, uncomment and use this:
+/*
+import { Timestamp } from 'firebase/firestore';
+interface FormDocument {
+  id: string;
+  ownerId: string;
+  title: string;
+  description?: string;
+  intendedUseCase: string;
+  formConfiguration: string; // JSON string
+  status: 'Draft' | 'Published' | 'Archived';
+  submissionsCount: number;
+  createdAt: Timestamp;
+  lastModified: Timestamp;
+}
+*/
+
+interface FormPreviewConfig {
   id: string;
   title: string;
   description?: string;
   fields: FormFieldData[];
 }
 
-// Mock form data store for preview - should match the edit store structure ideally
-const MOCK_FORM_PREVIEW_STORE: Record<string, MockFormPreview> = {
-  '1': {
-    id: '1',
-    title: 'Client Onboarding Form (Preview)',
-    description: 'Please fill out this form to begin the onboarding process.',
-    fields: [
-      { id: 'field_1', type: 'text', label: 'Full Name', placeholder: 'e.g., Jane Doe', required: true },
-      { id: 'field_2', type: 'number', label: 'Age', placeholder: 'e.g., 35', required: false },
-      { id: 'field_3', type: 'header', label: 'Contact Information' },
-      { id: 'field_4', type: 'dropdown', label: 'Country', options: ['USA', 'Canada', 'UK'], required: true, placeholder: 'Select Country' },
-      { id: 'field_prev_5', type: 'checkbox', label: 'Agree to terms', required: true }, // Using preview ID from original
-      { id: 'field_prev_6', type: 'date', label: 'Preferred Start Date', required: false },
-      { id: 'field_prev_7', type: 'file', label: 'Upload ID', required: true },
-      { id: 'field_prev_8', type: 'textarea', label: 'Additional Notes', placeholder: 'Optional comments...', required: false },
-    ],
-  },
-  '2': {
-     id: '2',
-     title: 'Loan Application - V3 (Preview)',
-     description: 'Complete the following sections to apply for a loan.',
-     fields: [
-       { id: 'field_loan_1', type: 'header', label: 'Personal Information' },
-       { id: 'field_loan_2', type: 'text', label: 'Applicant Name', required: true },
-       { id: 'field_loan_3', type: 'date', label: 'Date of Birth', required: true },
-       { id: 'field_loan_4', type: 'header', label: 'Loan Details' },
-       { id: 'field_loan_5', type: 'number', label: 'Loan Amount Requested', placeholder: '$', required: true },
-       { id: 'field_loan_6', type: 'textarea', label: 'Purpose of Loan', required: true },
-     ],
-  },
-   '3': {
-    id: '3',
-    title: 'Customer Feedback Survey Q3 (Preview)',
-    description: 'We value your feedback!',
-    fields: [
-       { id: 'field_fb_1', type: 'header', label: 'Your Experience' },
-       { id: 'field_fb_2', type: 'dropdown', label: 'Overall Satisfaction', options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'], required: true, placeholder: 'Select rating' },
-       { id: 'field_fb_3', type: 'textarea', label: 'Comments/Suggestions', placeholder: 'Tell us more...' },
-    ],
-  },
-  // Form '4' is intentionally left out
-};
+export default function FormPreviewPage() {
+  const params = useParams<{ id: string }>();
+  const formId = params.id;
+  const { currentUser } = useAuth(); // For recording submitter if needed
+  const router = useRouter();
+  const { toast } = useToast();
 
-
-export default function FormPreviewPage() { // Removed params from props
-  const params = useParams<{ id: string }>(); // Use the hook
-  const formId = params.id; // Extract id
-
-  const [formConfig, setFormConfig] = useState<MockFormPreview | null>(null);
+  const [formConfig, setFormConfig] = useState<FormPreviewConfig | null>(null);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
 
   useEffect(() => {
     if (!formId) return;
 
     setIsLoading(true);
     setError(null);
-    // Simulate fetching form configuration
-    const fetchedForm = MOCK_FORM_PREVIEW_STORE[formId];
-    
-    const timer = setTimeout(() => {
-      if (fetchedForm) {
-        setFormConfig(fetchedForm);
-        // Initialize formValues
-        const initialValues: Record<string, any> = {};
-        fetchedForm.fields.forEach(field => {
-          // Skip headers for form values
-          if (field.type === 'header') return;
-          
-          if (field.type === 'checkbox') {
-            initialValues[field.id] = false;
-          } else {
-            initialValues[field.id] = '';
+    const formDocRef = doc(db, 'forms', formId);
+
+    getDoc(formDocRef)
+      .then((docSnap) => {
+        if (docSnap.exists()) {
+          const formData = docSnap.data() as FormDocument;
+
+          // For preview, we only show published forms, or allow owner to preview drafts.
+          // This logic can be enhanced with security rules for non-owners.
+          if (formData.status !== 'Published' && formData.ownerId !== currentUser?.uid) {
+            setError("This form is not currently available for preview.");
+            toast({ title: "Preview Not Available", description: "This form is either not published or you don't have permission.", variant: "destructive" });
+            return;
           }
-        });
-        setFormValues(initialValues);
-      } else {
-        setError(`Form preview for ID "${formId}" could not be found.`);
-      }
-      setIsLoading(false);
-    }, 500); // Simulate delay
+          
+          try {
+            const parsedConfig = JSON.parse(formData.formConfiguration);
+            const previewData: FormPreviewConfig = {
+              id: docSnap.id,
+              title: formData.title,
+              description: formData.description,
+              fields: parsedConfig.fields || [],
+            };
+            setFormConfig(previewData);
 
-    return () => clearTimeout(timer);
+            const initialValues: Record<string, any> = {};
+            (parsedConfig.fields || []).forEach((field: FormFieldData) => {
+              if (field.type === 'header') return;
+              initialValues[field.id] = field.type === 'checkbox' ? false : '';
+            });
+            setFormValues(initialValues);
 
-  }, [formId]); // Use formId in dependency array
+          } catch (e) {
+            console.error("Error parsing form configuration for preview:", e);
+            setError("Failed to load form structure for preview.");
+          }
+        } else {
+          setError(`Form with ID "${formId}" could not be found.`);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching form for preview: ", err);
+        setError("Failed to load form data. Please try again.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [formId, currentUser, toast]);
 
   const handleChange = (fieldId: string, value: any, type?: string) => {
     setFormValues(prev => ({ ...prev, [fieldId]: type === 'checkbox' ? (value as boolean) : value }));
-    // Basic real-time validation (example)
     if (validationErrors[fieldId]) {
       const currentField = formConfig?.fields.find(f => f.id === fieldId);
-      if (currentField?.required && !value && !(type === 'checkbox' && value === false)) { // Keep error if still invalid
-         // Need to handle checkbox specifically, false is a valid value but empty string isn't
+      if (currentField?.required && !value && !(type === 'checkbox' && value === false)) {
+         // keep error
       } else {
         setValidationErrors(prev => {
           const newErrors = { ...prev };
@@ -128,41 +128,80 @@ export default function FormPreviewPage() { // Removed params from props
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: Record<string, string> = {};
-    formConfig?.fields.forEach(field => {
-       if (field.type === 'header') return; // Skip validation for headers
+    if (!formConfig) return;
 
+    const errors: Record<string, string> = {};
+    formConfig.fields.forEach(field => {
+      if (field.type === 'header') return;
       if (field.required) {
-         if (field.type === 'checkbox') {
-            if (!formValues[field.id]) { // Checkbox must be true if required
-              errors[field.id] = `${field.label} is required.`;
-            }
-         } else if (!formValues[field.id]) { // Other fields just need a value
-            errors[field.id] = `${field.label} is required.`;
-         }
+        if (field.type === 'checkbox') {
+          if (!formValues[field.id]) errors[field.id] = `${field.label} is required.`;
+        } else if (!formValues[field.id]) {
+          errors[field.id] = `${field.label} is required.`;
+        }
       }
-      // Add more complex validation logic here (e.g., email format, number range)
     });
     setValidationErrors(errors);
+
     if (Object.keys(errors).length === 0) {
-      alert('Form submitted successfully (mock)! Data: ' + JSON.stringify(formValues, null, 2));
-      // Reset form or redirect here in a real app
+      setIsSubmitting(true);
+      try {
+        // In a real app, save to a 'submissions' subcollection or dedicated collection
+        // For example: await addDoc(collection(db, 'forms', formId, 'submissions'), { ... })
+        // For now, just show a success message
+        console.log('Form Submitted Data:', {
+            formId: formConfig.id,
+            submittedBy: currentUser?.uid || 'anonymous', // Or an actual name/email if collected
+            submittedAt: serverTimestamp(), // Use serverTimestamp for actual Firestore write
+            data: formValues
+        });
+        
+        // Simulate saving to a submissions collection for the demo
+        await addDoc(collection(db, 'submissions'), {
+            formId: formConfig.id,
+            formTitle: formConfig.title,
+            submitterId: currentUser?.uid || 'anonymous',
+            submissionDate: serverTimestamp(),
+            data: formValues,
+        });
+        // Potentially increment submissionsCount on the form document (using a Firebase Function for atomicity is best)
+
+        toast({
+          title: "Form Submitted Successfully!",
+          description: "Your response has been recorded.",
+        });
+        // Optionally, reset form or redirect
+        // setFormValues({}); // Reset form fields
+      } catch (submitError) {
+        console.error("Error submitting form:", submitError);
+        toast({
+          title: "Submission Error",
+          description: "Could not submit your form. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
-      // Find the first field with an error and focus it
       const firstErrorFieldId = Object.keys(errors)[0];
-      const element = document.getElementById(firstErrorFieldId);
-      element?.focus();
-      alert('Please correct the errors in the form.');
+      document.getElementById(firstErrorFieldId)?.focus();
+      toast({
+        title: "Validation Error",
+        description: "Please correct the errors in the form.",
+        variant: "destructive",
+      });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-theme(spacing.28))]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Loading form preview...</span>
+      <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
+        <PageHeader title="Loading Form Preview..." />
+        <div className="flex-grow flex items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
@@ -184,8 +223,9 @@ export default function FormPreviewPage() { // Removed params from props
         title={formConfig.title}
         description="This is how your form will appear to end-users."
         actions={
+          currentUser && formConfig?.id && // Only show if user is logged in and formId is available
           <Button variant="outline" asChild>
-            <Link href={`/dashboard/my-forms/${formId}/edit`}>
+            <Link href={`/dashboard/my-forms/${formConfig.id}/edit`}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
             </Link>
           </Button>
@@ -200,7 +240,6 @@ export default function FormPreviewPage() { // Removed params from props
           <form onSubmit={handleSubmit} className="space-y-6">
             {formConfig.fields.map(field => {
               if (field.type === 'header') {
-                // Render headers differently, maybe with margin/padding
                 return <h2 key={field.id} className="text-xl font-semibold pt-6 pb-2 border-b border-border first:pt-0">{field.label}</h2>;
               }
               return (
@@ -219,6 +258,7 @@ export default function FormPreviewPage() { // Removed params from props
                       className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''}
                       aria-invalid={!!validationErrors[field.id]}
                       aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
+                      disabled={isSubmitting}
                     />
                   ) : field.type === 'textarea' ? (
                      <Textarea
@@ -230,12 +270,14 @@ export default function FormPreviewPage() { // Removed params from props
                       aria-invalid={!!validationErrors[field.id]}
                       aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
                       rows={3}
+                      disabled={isSubmitting}
                     />
                   ) : field.type === 'dropdown' && field.options ? (
                     <Select
                       value={formValues[field.id] || ''}
                       onValueChange={value => handleChange(field.id, value)}
                       required={field.required}
+                      disabled={isSubmitting}
                     >
                       <SelectTrigger id={field.id} className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''} aria-invalid={!!validationErrors[field.id]} aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}>
                         <SelectValue placeholder={field.placeholder || "Select an option"} />
@@ -253,13 +295,12 @@ export default function FormPreviewPage() { // Removed params from props
                         className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive [&[data-state=checked]]:bg-destructive [&[data-state=checked]]:border-destructive' : ''}
                         aria-invalid={!!validationErrors[field.id]}
                         aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
+                        disabled={isSubmitting}
                       />
-                       {/* Put label text in its own div for better alignment */}
                        <div className="grid gap-1.5 leading-none">
                         <Label htmlFor={field.id} className="font-normal cursor-pointer">
-                            {field.label.replace(/ is required.$/, '')} {/* Minor clean up */}
+                            {field.label.replace(/ is required.$/, '')}
                         </Label>
-                         {/* You could add a description here if needed */}
                         </div>
                     </div>
                   ) : field.type === 'file' ? (
@@ -270,13 +311,17 @@ export default function FormPreviewPage() { // Removed params from props
                       className={validationErrors[field.id] ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''}
                       aria-invalid={!!validationErrors[field.id]}
                       aria-describedby={validationErrors[field.id] ? `${field.id}-error` : undefined}
+                      disabled={isSubmitting}
                     />
                   ) : null}
                   {validationErrors[field.id] && <p id={`${field.id}-error`} className="text-sm text-destructive mt-1">{validationErrors[field.id]}</p>}
                 </div>
               );
             })}
-            <Button type="submit" className="w-full sm:w-auto" size="lg">Submit Form</Button>
+            <Button type="submit" className="w-full sm:w-auto" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Submit Form
+            </Button>
           </form>
         </CardContent>
       </Card>

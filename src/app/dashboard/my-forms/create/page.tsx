@@ -1,31 +1,40 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { FieldPalette } from '@/components/form-builder/field-palette';
 import { FormCanvas } from '@/components/form-builder/form-canvas';
 import { PropertiesPanel } from '@/components/form-builder/properties-panel';
 import { FormFieldData, FormFieldDisplay } from '@/components/form-builder/form-field-display';
 import { PageHeader } from '@/components/common/page-header';
-import { Save, Send, Eye, History as HistoryIcon } from 'lucide-react';
+import { Save, Send, Eye, History as HistoryIcon, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import Link from 'next/link';
+import { Input } from '@/components/ui/input'; // Added Input
+import { Textarea } from '@/components/ui/textarea'; // Added Textarea
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 type FieldConfig = FormFieldData;
 
 export default function CreateFormPage() {
+  const { currentUser } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
   const [formFields, setFormFields] = useState<FieldConfig[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [formTitle, setFormTitle] = useState<string>("Untitled Form");
+  const [formDescription, setFormDescription] = useState<string>("");
+  const [intendedUseCase, setIntendedUseCase] = useState<string>("");
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+
 
   const handleAddField = useCallback((fieldType: string) => {
     const newField: FieldConfig = {
@@ -52,7 +61,7 @@ export default function CreateFormPage() {
       )
     );
   }, []);
-  
+
   const handleDeleteField = useCallback((fieldId: string) => {
     setFormFields((prevFields) => prevFields.filter(field => field.id !== fieldId));
     if (selectedFieldId === fieldId) {
@@ -63,62 +72,137 @@ export default function CreateFormPage() {
   const selectedFieldConfig = formFields.find(f => f.id === selectedFieldId) || null;
 
   const renderedFields = formFields.map(field => (
-    <FormFieldDisplay 
-      key={field.id} 
-      field={isPreviewMode ? {...field, validationState: 'default'} : field} 
+    <FormFieldDisplay
+      key={field.id}
+      field={isPreviewMode ? {...field, validationState: 'default'} : field}
       isSelected={!isPreviewMode && selectedFieldId === field.id}
       onClick={(id) => !isPreviewMode && handleSelectField(id)}
     />
   ));
 
+  const handleSaveForm = async (status: 'Draft' | 'Published') => {
+    if (!currentUser) {
+      toast({ title: "Authentication Error", description: "You must be logged in to save a form.", variant: "destructive" });
+      return;
+    }
+    if (!formTitle.trim()) {
+      toast({ title: "Validation Error", description: "Form title cannot be empty.", variant: "destructive" });
+      return;
+    }
+    if (!intendedUseCase.trim()) {
+      toast({ title: "Validation Error", description: "Intended use case cannot be empty.", variant: "destructive" });
+      return;
+    }
+
+    setIsSaving(true);
+    const formConfiguration = JSON.stringify({ fields: formFields });
+
+    try {
+      const docRef = await addDoc(collection(db, "forms"), {
+        ownerId: currentUser.uid,
+        title: formTitle,
+        description: formDescription,
+        intendedUseCase: intendedUseCase,
+        formConfiguration: formConfiguration,
+        status: status,
+        submissionsCount: 0,
+        createdAt: serverTimestamp(),
+        lastModified: serverTimestamp(),
+        isPublic: false, // Default to private
+      });
+      toast({
+        title: `Form ${status === 'Draft' ? 'Saved as Draft' : 'Published'}`,
+        description: `Your form "${formTitle}" has been successfully ${status === 'Draft' ? 'saved' : 'published'}.`,
+      });
+      router.push(`/dashboard/my-forms/${docRef.id}/edit`); // Redirect to edit page of the new form
+    } catch (error) {
+      console.error("Error saving form: ", error);
+      toast({
+        title: "Error Saving Form",
+        description: "Could not save the form. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]"> {/* Adjust height based on header/footer */}
+    <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
       <PageHeader
-        title={formTitle}
+        title="Create New Form"
         description="Design and configure your new form."
         actions={
           <div className="flex items-center gap-2">
             <div className="flex items-center space-x-2">
-              <Switch id="preview-mode" checked={isPreviewMode} onCheckedChange={setIsPreviewMode} />
+              <Switch id="preview-mode" checked={isPreviewMode} onCheckedChange={setIsPreviewMode} disabled={isSaving} />
               <Label htmlFor="preview-mode">Preview Mode</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button variant="secondary" size="sm"> {/* Changed variant to secondary */}
-              <Save className="mr-2 h-4 w-4" /> Save Draft
+            <Button variant="secondary" size="sm" onClick={() => handleSaveForm('Draft')} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save Draft
             </Button>
-            <Button size="sm">
-              <Send className="mr-2 h-4 w-4" /> Publish
+            <Button size="sm" onClick={() => handleSaveForm('Published')} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Publish
             </Button>
-             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <HistoryIcon className="mr-2 h-4 w-4" /> Version History
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>Version 1.0 (Current)</DropdownMenuItem>
-                <DropdownMenuItem disabled>No previous versions</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         }
       />
-      
-      <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6 min-h-0">
+
+      <div className="p-6 space-y-4 border-b">
+        <div>
+          <Label htmlFor="formTitle">Form Title</Label>
+          <Input
+            id="formTitle"
+            value={formTitle}
+            onChange={(e) => setFormTitle(e.target.value)}
+            placeholder="e.g., Client Onboarding"
+            className="mt-1 text-lg font-semibold"
+            disabled={isSaving}
+          />
+        </div>
+        <div>
+          <Label htmlFor="formDescription">Form Description (Optional)</Label>
+          <Textarea
+            id="formDescription"
+            value={formDescription}
+            onChange={(e) => setFormDescription(e.target.value)}
+            placeholder="A brief description of what this form is for."
+            rows={2}
+            className="mt-1"
+            disabled={isSaving}
+          />
+        </div>
+         <div>
+          <Label htmlFor="intendedUseCase">Intended Use Case</Label>
+          <Input
+            id="intendedUseCase"
+            value={intendedUseCase}
+            onChange={(e) => setIntendedUseCase(e.target.value)}
+            placeholder="e.g., New client data collection for KYC"
+            className="mt-1"
+            disabled={isSaving}
+          />
+        </div>
+      </div>
+
+      <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
         {!isPreviewMode && (
           <div className="md:col-span-3 min-h-0">
             <FieldPalette onAddField={handleAddField} />
           </div>
         )}
-        
+
         <div className={isPreviewMode ? "md:col-span-12 min-h-0" : "md:col-span-6 min-h-0"}>
           <FormCanvas fields={renderedFields} onSelectField={handleSelectField} />
         </div>
 
         {!isPreviewMode && (
           <div className="md:col-span-3 min-h-0">
-            <PropertiesPanel 
-              selectedField={selectedFieldConfig} 
+            <PropertiesPanel
+              selectedField={selectedFieldConfig}
               onUpdateField={handleUpdateField}
               onDeleteField={handleDeleteField}
             />
