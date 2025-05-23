@@ -1,4 +1,3 @@
-
 // src/platform-builder/data-models.ts
 import type { Timestamp } from 'firebase/firestore';
 
@@ -62,9 +61,16 @@ export interface GlobalComponentDefinition {
 
   // Defines the properties that can be configured for this component type.
   // The keys are property names (e.g., 'textLabel', 'colorScheme', 'itemsSource').
+  // This should be stored as an object/map in Firestore.
   configurablePropertiesSchema?: {
     [propertyName: string]: ConfigurablePropertySchema;
   };
+  // The configurablePropertiesJson field was used for form input, schema is the actual model.
+  // We might not need configurablePropertiesJson on the model if schema is directly stored.
+  // However, the form in create-global-component-client.tsx uses a textarea for JSON input.
+  // For consistency, if the UI takes JSON string, the model might store it as string too, or convert on save/load.
+  // Let's assume the Firestore model stores the schema object directly for better querying/typing.
+  // The UI component can handle stringification/parsing.
 
   template?: string; // Example: "<button style={{backgroundColor: {{props.color}} }} onClick={{props.onClickAction}}>{{props.label}}</button>"
 
@@ -110,6 +116,8 @@ export interface PlatformLayout {
   // Components for this layout are queried from /platforms/{platformId}/components
   // using where('layoutId', '==', layout.id).orderBy('order')
   // No specific structure is needed here if we query directly.
+  // Alternatively, an array of root component instance IDs could be stored here for simple linear layouts:
+  // rootComponentInstanceIds?: string[];
   themeOverrides?: {
     primaryColor?: string;
     fontFamily?: string;
@@ -137,6 +145,7 @@ export interface TenantMetadata {
   adminUids: string[]; // List of UIDs for tenant administrators.
   subscriptionStatus?: 'active' | 'trial' | 'inactive' | 'pending_setup';
   domains?: string[]; // Custom domains associated with this tenant's platforms.
+  // Note: Platform IDs are not stored here directly. Query /platforms where tenantId == this.id.
   createdAt?: Timestamp;
   lastModified?: Timestamp;
 }
