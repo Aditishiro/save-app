@@ -1,5 +1,9 @@
-import { type ReactNode } from 'react';
+
+'use client'; // Make this a client component to use hooks
+
+import { type ReactNode, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import {
   LayoutGrid,
   Layers,
@@ -10,7 +14,8 @@ import {
   UserCircle,
   LogOut,
   Search,
-  BarChart3, // Added BarChart3 icon
+  BarChart3,
+  Loader2, // Added Loader2
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -29,23 +34,42 @@ import { Logo } from '@/components/common/logo';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/contexts/auth-context'; // Import useAuth
 
 const navItems = [
   { href: '/dashboard/my-forms', label: 'My Forms', icon: LayoutGrid },
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
   { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot },
-  { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 }, // New nav item
+  { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { currentUser, loading, logOut } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !currentUser) {
+      router.push('/'); // Redirect to login if not authenticated and not loading
+    }
+  }, [currentUser, loading, router]);
+
+  if (loading || !currentUser) {
+    // Show a loading state or null while checking auth / redirecting
+    // This prevents rendering dashboard content prematurely
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider defaultOpen>
       <Sidebar variant="sidebar" collapsible="icon" side="left" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          {/* Logo color will be text-sidebar-foreground as per new design, or text-primary if explicitly set */}
           <Logo />
         </SidebarHeader>
         <SidebarContent className="p-2">
@@ -72,28 +96,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://picsum.photos/id/237/200/200" alt="User Avatar" data-ai-hint="user avatar" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src={currentUser.photoURL || "https://picsum.photos/id/237/200/200"} alt="User Avatar" data-ai-hint="user avatar" />
+                  <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-left group-data-[collapsible=icon]:hidden">
-                  <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-sidebar-foreground/70">john.doe@example.com</p>
+                  <p className="text-sm font-medium truncate">{currentUser.displayName || currentUser.email}</p>
+                  {currentUser.displayName && <p className="text-xs text-sidebar-foreground/70 truncate">{currentUser.email}</p>}
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="start" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled> {/* Add link to profile page later */}
                 <UserCircle className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={logOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
@@ -114,7 +140,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          {/* Future icons like Notifications, Help can go here */}
         </header>
         <main className="flex-1 p-6">
           {children}
