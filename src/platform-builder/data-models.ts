@@ -1,3 +1,4 @@
+
 // src/platform-builder/data-models.ts
 import type { Timestamp } from 'firebase/firestore';
 
@@ -25,7 +26,7 @@ import type { Timestamp } from 'firebase/firestore';
  * Defines the schema for a single configurable property of a Global UI Component.
  */
 export interface ConfigurablePropertySchema {
-  type: 'string' | 'number' | 'boolean' | 'color' | 'json' | 'text' | 'dropdown' | 'file' | 'image' | 'icon' | 'eventHandler' | 'dataSource'; // Added more specific types
+  type: 'string' | 'number' | 'boolean' | 'color' | 'json' | 'text' | 'textarea' | 'dropdown' | 'file' | 'image' | 'icon' | 'eventHandler' | 'dataSource';
   label: string; // User-friendly label for this property in the builder UI.
   defaultValue?: any;
   options?: string[]; // For 'dropdown' type to list available choices.
@@ -44,7 +45,7 @@ export interface ConfigurablePropertySchema {
 
 /**
  * Represents the definition of a globally reusable UI component.
- * Stored in: /components/{componentDefinitionId}
+ * Stored in Cloud Firestore at: /components/{componentDefinitionId}
  * These are templates managed by platform administrators.
  */
 export interface GlobalComponentDefinition {
@@ -63,6 +64,7 @@ export interface GlobalComponentDefinition {
 
   // Default HTML/JSX-like template structure or rendering hints for the component.
   // This could be a string, or a more structured representation if using a specific templating engine.
+  // Storing this as a string and parsing it, or using a more structured format, are options.
   template?: string;
 
   createdAt?: Timestamp;
@@ -72,7 +74,7 @@ export interface GlobalComponentDefinition {
 
 /**
  * Represents an instance of a component placed on a specific user-built platform page.
- * Stored in: /platforms/{platformId}/components/{componentInstanceId}
+ * Stored in Cloud Firestore at: /platforms/{platformId}/components/{componentInstanceId}
  */
 export interface PlatformComponentInstance {
   id: string; // Matches document ID for this instance.
@@ -104,7 +106,7 @@ export interface PlatformComponentInstance {
 
 /**
  * Represents the layout and structure of a specific page within a user-built platform.
- * Stored in: /platforms/{platformId}/layouts/{layoutId} (e.g., layoutId could be 'homepage', 'dashboard_v1')
+ * Stored in Cloud Firestore at: /platforms/{platformId}/layouts/{layoutId} (e.g., layoutId could be 'homepage', 'dashboard_v1')
  */
 export interface PlatformLayout {
   id: string; // Matches document ID, e.g., 'mainPage', 'productDetails'.
@@ -114,15 +116,9 @@ export interface PlatformLayout {
   routePath?: string; // e.g., '/', '/profile', '/products/:productId'. Used for routing within the rendered platform.
 
   // Defines the hierarchy and arrangement of component instances on this layout.
-  // This could be a flat list with parent/child relationships or a nested tree structure.
-  // For simplicity, a flat list with `parentId` is often easier to manage in Firestore.
-  componentHierarchy: Array<{
-    instanceId: string; // Reference to PlatformComponentInstance.id.
-    // `parentId` and `order` would be managed via PlatformComponentInstance.layoutInfo.
-    // This array might just be a list of root-level component instance IDs for this layout.
-    // Alternatively, this could be a more complex tree structure.
-    // For now, let's assume layoutInfo on the instance handles nesting.
-  }>;
+  // Could be a JSON string representing a tree structure, or a list of root component instance IDs.
+  // Example: A JSON string representing an array of { instanceId: string, children: [...] }
+  structureJson?: string;
 
   // Platform-wide theme overrides or settings specific to this layout.
   themeOverrides?: {
@@ -141,29 +137,35 @@ export interface PlatformLayout {
 
 /**
  * Represents metadata and core configurations for a tenant.
- * Stored in: /tenants/{tenantId}
+ * Stored in Cloud Firestore at: /tenants/{tenantId}
+ * This collection holds top-level information for each distinct tenant using the platform builder.
  */
 export interface TenantMetadata {
-  id: string; // Matches document ID (e.g., derived from auth or a unique name).
+  id: string; // Matches document ID (e.g., derived from auth or a unique name like a slug).
   name: string; // Company name or tenant display name.
   adminUids: string[]; // List of UIDs for tenant administrators.
   subscriptionStatus?: 'active' | 'trial' | 'inactive' | 'pending_setup';
-  // Other tenant-specific settings, e.g., custom domain, feature flags.
+  // Other tenant-specific settings, e.g., custom domain for their platforms, feature flags.
   domains?: string[]; // Custom domains associated with this tenant's platforms.
+  // Note: References to specific platforms owned by this tenant are typically achieved by
+  // querying the '/platforms' collection where 'PlatformData.tenantId' matches this tenant's ID,
+  // rather than storing an array of platformIds here, for better scalability.
   createdAt?: Timestamp;
   lastModified?: Timestamp;
 }
 
 /**
  * Represents a user profile within a specific tenant.
- * Stored in: /tenants/{tenantId}/users/{userId} (or /users/{userId} with tenantId field if preferred, but subcollection aligns with strict tenant data separation)
+ * Stored in Cloud Firestore at: /tenants/{tenantId}/users/{userId}
+ * This structure ensures logical separation of user data per tenant.
+ * The `tenantId` is part of the path, reinforcing isolation.
  */
 export interface TenantUser {
-  id: string; // Matches Auth UID.
-  tenantId: string; // ID of the tenant this user belongs to.
-  email: string; // User's email.
+  id: string; // Matches Firebase Auth UID.
+  // tenantId: string; // Implicitly defined by the document path. Can be added for denormalization if needed.
+  email: string; // User's email (should be verified for security).
   displayName?: string;
-  photoURL?: string; // Profile picture URL.
+  photoURL?: string; // Profile picture URL (ideally Cloud Storage download URL).
   roles: string[]; // e.g., ['tenant_admin', 'platform_editor', 'platform_viewer'] - roles specific to this tenant.
   // Other user preferences or data relevant to their activity within the tenant.
   lastLoginAt?: Timestamp;
@@ -173,28 +175,24 @@ export interface TenantUser {
 
 /**
  * Represents a user-built platform.
- * Stored in: /platforms/{platformId}
+ * Stored in Cloud Firestore at: /platforms/{platformId}
  */
 export interface PlatformData {
     id: string; // Matches document ID.
-    tenantId: string; // The ID of the tenant that owns this platform.
+    tenantId: string; // The ID of the tenant (from TenantMetadata.id) that owns this platform.
     name: string; // User-friendly name of the platform.
     description?: string; // Optional description.
-    // A platform can have multiple layouts/pages. Store references to layout IDs or primary layout.
-    // For example, defaultLayoutId: 'homepageLayoutId'
-    defaultLayoutId?: string;
-    // List of user UIDs who are designated as admins/editors for this specific platform,
-    // beyond the general tenant admins. This allows for delegated platform management.
-    platformAdmins?: string[];
-    platformEditors?: string[];
+    defaultLayoutId?: string; // ID of the primary layout/page for this platform.
+    platformAdmins?: string[]; // User UIDs with admin rights specifically for this platform.
+    platformEditors?: string[]; // User UIDs with editor rights specifically for this platform.
     status: 'draft' | 'published' | 'archived' | 'maintenance';
     publishedAt?: Timestamp;
-    // Custom domain configuration for this platform, if applicable.
-    customDomain?: string;
-    // Analytics or tracking IDs specific to this platform.
+    customDomain?: string; // Custom domain linked to this platform.
     trackingIds?: {
       googleAnalytics?: string;
     };
     createdAt?: Timestamp;
     lastModified?: Timestamp;
 }
+
+    
