@@ -66,9 +66,6 @@ export interface GlobalComponentDefinition {
     [propertyName: string]: ConfigurablePropertySchema;
   };
 
-  // Default HTML/JSX-like template structure or rendering hints for the component.
-  // This could be a string, or a more structured representation if using a specific templating engine.
-  // Storing this as a string and parsing it, or using a more structured format, are options.
   template?: string; // Example: "<button style={{backgroundColor: {{props.color}} }} onClick={{props.onClickAction}}>{{props.label}}</button>"
 
   createdAt?: Timestamp;
@@ -88,21 +85,12 @@ export interface PlatformComponentInstance {
   platformId: string; // The platform this component instance belongs to.
   layoutId: string; // The layout this component instance belongs to.
 
-  // Specific values for the configurable properties, overriding defaults from GlobalComponentDefinition.
-  // Keys should match those in GlobalComponentDefinition.configurablePropertiesSchema.
-  // Values should adhere to the 'type' defined in the schema item.
   configuredValues: {
     [propertyName: string]: any;
   };
 
-  // Positional/styling information relative to the platform layout or parent component.
   order: number; // Order among siblings within the same layout/parent.
   parentId?: string | null; // ID of parent component instance if nested, null for root-level on a layout.
-  // Example layout properties (could be much more complex, e.g., grid-specific like gridRow, gridCol):
-  // width?: string | number;
-  // height?: string | number;
-  // alignment?: string;
-  // customCss?: string;
   
   createdAt?: Timestamp;
   lastModified?: Timestamp;
@@ -119,17 +107,9 @@ export interface PlatformLayout {
   tenantId: string; // ID of the tenant owning this platform.
   name: string; // User-friendly name for the layout (e.g., 'Homepage', 'User Dashboard').
   routePath?: string; // e.g., '/', '/profile', '/products/:productId'. Used for routing within the rendered platform.
-
-  // Defines the root-level component instances for this layout, ordered by their 'order' property.
-  // For nested structures, child components would reference their parentId.
-  // The actual PlatformComponentInstance documents are fetched separately.
-  // This field primarily indicates which components belong to this layout.
-  // We can query PlatformComponentInstance collection: where('layoutId', '==', layout.id).orderBy('order')
-  // No specific structure needs to be stored here if we query.
-  // However, if we want to explicitly list root components:
-  // rootComponentInstanceIds?: string[]; // List of IDs of root-level PlatformComponentInstances
-
-  // Platform-wide theme overrides or settings specific to this layout.
+  // Components for this layout are queried from /platforms/{platformId}/components
+  // using where('layoutId', '==', layout.id).orderBy('order')
+  // No specific structure is needed here if we query directly.
   themeOverrides?: {
     primaryColor?: string;
     fontFamily?: string;
@@ -169,7 +149,6 @@ export interface TenantMetadata {
  */
 export interface TenantUser {
   id: string; // Matches Firebase Auth UID.
-  // tenantId: string; // Implicitly defined by the document path.
   email: string; // User's email.
   displayName?: string;
   photoURL?: string; // Profile picture URL.
@@ -200,3 +179,5 @@ export interface PlatformData {
     createdAt?: Timestamp;
     lastModified?: Timestamp;
 }
+
+    

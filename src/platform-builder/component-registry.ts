@@ -10,30 +10,21 @@ import SimpleButtonComponent from './renderable-components/SimpleButtonComponent
 
 export interface RenderableComponentProps {
   instance: PlatformComponentInstance;
-  definition: GlobalComponentDefinition;
-  // You might add more props like 'isPreview', 'onInteraction', etc.
+  // Definition is optional because in a live renderer, we might only pass instance data
+  // and the component fetches its own definition if needed, or relies purely on instance.type and instance.configuredValues.
+  // For a builder UI, providing the full definition is more common.
+  definition?: GlobalComponentDefinition;
 }
 
-// The registry maps a component type string (from GlobalComponentDefinition.type)
+// The registry maps a component type string (from PlatformComponentInstance.type or GlobalComponentDefinition.type)
 // to the actual React component that can render it.
 export const componentRegistry: Record<string, ComponentType<RenderableComponentProps>> = {
-  // --- Standard Components (examples) ---
-  Placeholder: PlaceholderComponent, // Fallback
+  Placeholder: PlaceholderComponent,
   HeadingText: HeadingTextComponent,
   SimpleButton: SimpleButtonComponent,
-  // -- FormFlow Specific Components (if you integrate existing form fields as platform components) --
-  // 'FormTextField': FormTextFieldPlatformComponent, // Example
-  // 'FormDropdownField': FormDropdownFieldPlatformComponent, // Example
-
-  // --- Layout Components (examples, would need dedicated components) ---
-  // 'Container': ContainerComponent,
-  // 'Row': RowComponent,
-  // 'Column': ColumnComponent,
-
-  // --- More Advanced Components (examples) ---
-  // 'DataTable': DataTableComponent,
-  // 'ImageGallery': ImageGalleryComponent,
-  // 'VideoPlayer': VideoPlayerComponent,
+  // Add more component types and their corresponding renderable React components here
+  // e.g., 'DataTable': DataTableRenderableComponent,
+  //       'ImageCarousel': ImageCarouselRenderableComponent,
 };
 
 /**
@@ -50,3 +41,5 @@ export function getRenderableComponent(type: string): ComponentType<RenderableCo
   }
   return component;
 }
+
+    
