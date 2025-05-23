@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ const fieldTypes = [
 
 export function FieldPalette({ onAddField }: { onAddField: (fieldType: string) => void }) {
   return (
-    <Card className="h-full shadow-md">
+    <Card className="h-full shadow-md overflow-y-auto"> {/* Added overflow-y-auto */}
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Palette className="h-5 w-5 text-primary" />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +60,7 @@ export function PropertiesPanel({ selectedField, onUpdateField, onDeleteField }:
 
 
   return (
-    <Card className="h-full shadow-md">
+    <Card className="h-full shadow-md overflow-y-auto"> {/* Added overflow-y-auto */}
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />

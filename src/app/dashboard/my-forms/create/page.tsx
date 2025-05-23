@@ -154,7 +154,7 @@ export default function CreateFormPage() {
 
       {/* Scrollable content area below PageHeader */}
       <div className="flex-1 flex flex-col overflow-y-auto min-h-0">
-        <div className="p-6 space-y-4 border-b">
+        <div className="p-6 space-y-4 border-b flex-shrink-0"> {/* Added flex-shrink-0 here as a test, might not be needed with panel scrolling */}
           <div>
             <Label htmlFor="formTitle">Form Title</Label>
             <Input
@@ -180,12 +180,12 @@ export default function CreateFormPage() {
           </div>
           <div>
             <Label htmlFor="intendedUseCase">Intended Use Case</Label>
-            <Textarea // Changed from Input to Textarea
+            <Textarea
               id="intendedUseCase"
               value={intendedUseCase}
               onChange={(e) => setIntendedUseCase(e.target.value)}
               placeholder="e.g., New client data collection for KYC, internal feedback survey, loan pre-qualification..."
-              rows={3} // Added rows prop for better default height
+              rows={3}
               className="mt-1"
               disabled={isSaving}
             />
@@ -195,7 +195,11 @@ export default function CreateFormPage() {
         <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
           {!isPreviewMode && (
             <div className="md:col-span-3 min-h-0">
-              <FieldPalette onAddField={handleAddField} />
+              {/* The Card component used internally by FieldPalette needs overflow handling if its content is too tall */}
+              {/* Assuming FieldPalette's structure is <Card><CardHeader/><CardContent/></Card> */}
+              {/* We modify the FieldPalette component itself if Card is internal, or wrap it if Card is returned by FieldPalette */}
+              {/* For now, assuming FieldPalette itself returns a Card or we wrap it conceptually */}
+              <FieldPalette onAddField={handleAddField} /> {/* If FieldPalette's root is a Card, it should have h-full and overflow-y-auto */}
             </div>
           )}
 
@@ -205,6 +209,7 @@ export default function CreateFormPage() {
 
           {!isPreviewMode && (
             <div className="md:col-span-3 min-h-0">
+              {/* Similar to FieldPalette, PropertiesPanel's internal Card needs overflow handling */}
               <PropertiesPanel
                 selectedField={selectedFieldConfig}
                 onUpdateField={handleUpdateField}
