@@ -182,8 +182,15 @@ export default function MyPlatformsPage() {
                   </Badge>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow space-y-1">
-                {platform.description && <p className="text-sm text-muted-foreground truncate" title={platform.description}>{platform.description}</p>}
+              <CardContent className="flex-grow space-y-2"> {/* Increased spacing slightly */}
+                {platform.description && (
+                  <p 
+                    className="text-sm text-muted-foreground line-clamp-2" // Use line-clamp for truncation
+                    title={platform.description}
+                  >
+                    {platform.description}
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">Last Modified: {formatDate(platform.lastModified)}</p>
               </CardContent>
               <CardFooter className="border-t pt-4">
