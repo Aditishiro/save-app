@@ -49,6 +49,20 @@
     },
     {
       "collectionGroup": "components",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "layoutId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "components",
       "queryScope": "COLLECTION",
       "fields": [
         {
