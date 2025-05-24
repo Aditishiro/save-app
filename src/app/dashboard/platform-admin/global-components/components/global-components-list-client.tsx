@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, AlertTriangle, Package, Edit3, Trash2, Code, Info } from 'lucide-react';
+import { Loader2, AlertTriangle, Package, Edit3, Trash2, Code, Info, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase/firebase';
 import { collection, query, getDocs, Timestamp, orderBy, deleteDoc, doc } from 'firebase/firestore';
@@ -27,8 +27,8 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-
+} from "@/components/ui/tooltip";
+import EditGlobalComponentClient from './edit-global-component-client'; // New import
 
 export default function GlobalComponentsListClient() {
   const [components, setComponents] = useState<GlobalComponentDefinition[]>([]);
@@ -36,17 +36,27 @@ export default function GlobalComponentsListClient() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const [selectedComponentForEdit, setSelectedComponentForEdit] = useState<GlobalComponentDefinition | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   const fetchComponents = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const componentsCollectionRef = collection(db, 'components');
-      const q = query(componentsCollectionRef, orderBy('displayName', 'asc')); // Order by name
+      const q = query(componentsCollectionRef, orderBy('displayName', 'asc'));
       const querySnapshot = await getDocs(q);
-      const fetchedComponents = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as GlobalComponentDefinition));
+      const fetchedComponents = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure schema is stringified if it's an object, for consistent display/handling
+          configurablePropertiesSchema: typeof data.configurablePropertiesSchema === 'object'
+            ? JSON.stringify(data.configurablePropertiesSchema, null, 2)
+            : data.configurablePropertiesSchema,
+        } as GlobalComponentDefinition;
+      });
       setComponents(fetchedComponents);
     } catch (err) {
       console.error("Error fetching global components: ", err);
@@ -83,9 +93,28 @@ export default function GlobalComponentsListClient() {
     }
   };
 
-  const formatDate = (timestamp: Timestamp | undefined) => {
+  const handleOpenEditDialog = (component: GlobalComponentDefinition) => {
+    setSelectedComponentForEdit(component);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditDialogClose = () => {
+    setIsEditDialogOpen(false);
+    setSelectedComponentForEdit(null);
+    fetchComponents(); // Refetch components in case any changes were made
+  };
+
+  const formatDate = (timestamp: Timestamp | undefined | any) => { // Added 'any' for robustness with potential old data
     if (!timestamp) return 'N/A';
-    return timestamp.toDate().toLocaleDateString();
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toLocaleDateString();
+    }
+    // Fallback for data that might not be a Firestore Timestamp object (e.g., string)
+    try {
+        return new Date(timestamp).toLocaleDateString();
+    } catch (e) {
+        return 'Invalid Date';
+    }
   };
 
   if (isLoading) {
@@ -119,7 +148,11 @@ export default function GlobalComponentsListClient() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {components.map((component) => (
-            <Card key={component.id} className="flex flex-col shadow-sm">
+            <Card 
+              key={component.id} 
+              className="flex flex-col shadow-sm cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleOpenEditDialog(component)}
+            >
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-md flex items-center gap-2">
@@ -143,7 +176,7 @@ export default function GlobalComponentsListClient() {
                     </TooltipContent>
                   </Tooltip>
                 )}
-                {component.configurablePropertiesJson && (
+                {typeof component.configurablePropertiesSchema === 'string' && component.configurablePropertiesSchema.length > 2 && ( // Check if it's a non-empty string
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <p className="text-muted-foreground truncate cursor-help flex items-center gap-1">
@@ -152,23 +185,43 @@ export default function GlobalComponentsListClient() {
                     </TooltipTrigger>
                     <TooltipContent side="bottom" align="start" className="max-w-md">
                         <ScrollArea className="h-40">
-                         <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded-md">{component.configurablePropertiesJson}</pre>
+                         <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded-md">{component.configurablePropertiesSchema}</pre>
                         </ScrollArea>
                     </TooltipContent>
                   </Tooltip>
                 )}
+                 {component.template && (
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                            <p className="text-muted-foreground truncate cursor-help flex items-center gap-1">
+                                <Package className="h-3 w-3" /> View Template String
+                            </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" align="start" className="max-w-md">
+                            <ScrollArea className="h-40">
+                                <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded-md">{component.template}</pre>
+                            </ScrollArea>
+                        </TooltipContent>
+                     </Tooltip>
+                 )}
                 <p className="text-xs text-muted-foreground pt-1">
                   Last Modified: {formatDate(component.lastModified)}
                 </p>
+                 {component.tags && component.tags.length > 0 && (
+                    <div className="pt-1">
+                      {component.tags.map(tag => <Badge key={tag} variant="secondary" className="mr-1 mb-1 text-xs">{tag}</Badge>)}
+                    </div>
+                  )}
               </CardContent>
               <CardFooter className="border-t pt-3">
                 <div className="flex w-full justify-end items-center gap-2">
-                  <Button variant="outline" size="xs" disabled> {/* Implement edit later */}
+                  {/* The main card click opens the edit dialog, so this button might be redundant or serve a different purpose */}
+                  <Button variant="outline" size="xs" onClick={(e) => { e.stopPropagation(); handleOpenEditDialog(component); }}>
                     <Edit3 className="mr-1 h-3 w-3" /> Edit
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
                         <Trash2 className="mr-1 h-3 w-3" /> Delete
                       </Button>
                     </AlertDialogTrigger>
@@ -193,6 +246,14 @@ export default function GlobalComponentsListClient() {
             </Card>
           ))}
         </div>
+      )}
+      {selectedComponentForEdit && (
+        <EditGlobalComponentClient
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen} // Directly pass setIsEditDialogOpen
+          componentToEdit={selectedComponentForEdit}
+          onClose={handleEditDialogClose} // Pass the combined close and refetch handler
+        />
       )}
     </TooltipProvider>
   );
