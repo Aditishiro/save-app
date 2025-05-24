@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const initialConfigurablePropertiesJson = `{
   "text": { "type": "string", "label": "Button Text", "defaultValue": "Click Me", "group": "Content" }
 }`;
-const initialTemplateString = `<button>{{text}}</button>`;
+const initialTemplateString = `<button>{{props.text}}</button>`; // Updated placeholder to use props.text
 
 interface CreateGlobalComponentFormProps {
   isOpen: boolean;
@@ -43,7 +43,7 @@ interface CreateGlobalComponentFormProps {
   setDescription: (value: string) => void;
   iconUrl: string;
   setIconUrl: (value: string) => void;
-  tagsString: string; // For comma-separated tags input
+  tagsString: string;
   setTagsString: (value: string) => void;
   configurablePropertiesJson: string;
   setConfigurablePropertiesJson: (value: string) => void;
@@ -78,12 +78,10 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
 
   useEffect(() => {
     if (selectedTemplateId === 'custom') {
-      // Parent's resetForm handles initial blank state.
-      // This effect only ensures JSON/template defaults if user re-selects "custom"
-      // after choosing another template.
-      // For a more robust reset on "custom" selection, call parent's resetForm or parts of it.
-      setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
-      setTemplate(initialTemplateString);
+      // Rely on parent's resetForm for full initial blank state when dialog opens
+      // This part specifically ensures textareas are reset if 'custom' is re-selected
+       setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
+       setTemplate(initialTemplateString);
     } else {
       const selected = componentTemplates.find(t => t.templateId === selectedTemplateId);
       if (selected) {
@@ -206,7 +204,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
           </form>
         </ScrollArea>
 
-        <DialogFooter className="p-6 pt-4 border-t sticky bottom-0 bg-background">
+        <DialogFooter className="p-6 pt-4 border-t sticky bottom-0 bg-background z-10">
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isSaving}>
               Cancel
@@ -228,15 +226,14 @@ export default function CreateGlobalComponentClient() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  // Form state is lifted here
   const [componentId, setComponentId] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [componentType, setComponentType] = useState('');
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
   const [tagsString, setTagsString] = useState(''); 
-  const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState(
-    initialConfigurablePropertiesJson
-  );
+  const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState(initialConfigurablePropertiesJson);
   const [template, setTemplate] = useState(initialTemplateString);
 
   const resetForm = (isOpening = false) => {
@@ -246,7 +243,8 @@ export default function CreateGlobalComponentClient() {
     setDescription('');
     setIconUrl('');
     setTagsString('');
-    if(isOpening) {
+    // Only reset textareas if explicitly opening, to preserve user input if they just re-select "custom" template
+    if(isOpening) { 
       setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
       setTemplate(initialTemplateString);
     }
@@ -254,7 +252,7 @@ export default function CreateGlobalComponentClient() {
 
   const handleOpenChangeWrapper = (open: boolean) => {
     if (open) {
-      resetForm(true); 
+      resetForm(true); // Reset form when dialog is opened
     }
     setIsOpen(open);
   };
@@ -270,7 +268,7 @@ export default function CreateGlobalComponentClient() {
       return;
     }
 
-    let parsedConfigurableProperties;
+    let parsedConfigurableProperties: Record<string, ConfigurablePropertySchema>;
     try {
       if (configurablePropertiesJson.trim()) {
         parsedConfigurableProperties = JSON.parse(configurablePropertiesJson);
@@ -303,7 +301,7 @@ export default function CreateGlobalComponentClient() {
     };
 
     try {
-      const componentDocRef = doc(db, 'components', newComponentDef.id!);
+      const componentDocRef = doc(db, 'components', newComponentDef.id!); // Use the user-provided ID
       await setDoc(componentDocRef, {
         ...newComponentDef,
         createdAt: serverTimestamp(),
@@ -314,12 +312,18 @@ export default function CreateGlobalComponentClient() {
         title: 'Global Component Created',
         description: `Component "${newComponentDef.displayName}" has been saved.`,
       });
-      handleOpenChangeWrapper(false); 
+      handleOpenChangeWrapper(false); // Close dialog on success
     } catch (error) {
       console.error('Error creating global component:', error);
+      let errorMessage = 'Could not create global component. Check console for details.';
+      if (error instanceof Error && error.message.includes("Missing or insufficient permissions")) {
+          errorMessage = "Permission denied. Ensure you have rights to write to the 'components' collection.";
+      } else if (error instanceof Error && error.message.toLowerCase().includes("document already exists")) {
+          errorMessage = `A component with ID "${newComponentDef.id}" already exists. Please use a unique ID.`;
+      }
       toast({
         title: 'Error',
-        description: 'Could not create global component. Check console.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -350,3 +354,4 @@ export default function CreateGlobalComponentClient() {
     </>
   );
 }
+
