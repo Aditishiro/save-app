@@ -3,20 +3,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Eye, Wand2 } from 'lucide-react';
+import { Loader2, Save, Eye, Wand2, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/firebase/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { GlobalComponentDefinition, ConfigurablePropertySchema } from '@/platform-builder/data-models';
@@ -28,7 +19,7 @@ interface EditGlobalComponentClientProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   componentToEdit: GlobalComponentDefinition | null;
-  onClose: () => void; 
+  onClose: () => void;
 }
 
 export default function EditGlobalComponentClient({
@@ -87,6 +78,9 @@ export default function EditGlobalComponentClient({
       setTagsString('');
       setConfigurablePropertiesJson('{}');
       setTemplateString('');
+      setParsedSchemaForPreview(null);
+      setJsonError(null);
+      setPreviewHtml('');
     }
   }, [componentToEdit]);
 
@@ -107,7 +101,7 @@ export default function EditGlobalComponentClient({
       }
     } catch (error) {
       if (error instanceof Error) {
-         setJsonError(`Schema JSON Syntax Error: ${error.message.split('\n')[0]}`);
+         setJsonError(`Schema JSON Syntax Error: ${error.message.split('\\n')[0]}`);
       } else {
          setJsonError("Invalid Schema JSON syntax.");
       }
@@ -115,8 +109,8 @@ export default function EditGlobalComponentClient({
     }
   }, [configurablePropertiesJson]);
 
-  useEffect(() => {
-    if (jsonError || !parsedSchemaForPreview || !templateString) {
+   useEffect(() => {
+    if (jsonError || !parsedSchemaForPreview || !templateString.trim()) {
       setPreviewHtml('<p class="text-muted-foreground text-center text-xs py-4">Enter valid schema and template for preview.</p>');
       return;
     }
@@ -134,6 +128,7 @@ export default function EditGlobalComponentClient({
       setPreviewHtml('<p class="text-red-500 text-xs text-center py-4">Error generating preview.</p>');
     }
   }, [templateString, parsedSchemaForPreview, jsonError]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,174 +196,36 @@ export default function EditGlobalComponentClient({
     }
   };
 
+  if (!isOpen) {
+    return null;
+  }
+
+  // Drastically simplified return for diagnostics
   if (!componentToEdit && isOpen) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Loading Component Data...</DialogTitle>
-          </DialogHeader>
-          <div className="p-6 flex justify-center items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }} className="dark:bg-slate-800">
+          <p>Loading component data...</p>
+          <button onClick={() => onOpenChange(false)} className="mt-4 p-2 border rounded">Close</button>
+        </div>
+      </div>
     );
   }
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] grid grid-rows-[auto_1fr_auto] p-0">
-        <DialogHeader className="p-6 pb-4 border-b">
-          <DialogTitle>View/Edit Global Component: {componentToEdit?.displayName || 'Loading...'}</DialogTitle>
-          <DialogDescription>
-            Modify the details of this reusable UI component. Component ID cannot be changed.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <ScrollArea className="overflow-y-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6">
-            <form onSubmit={handleSubmit} className="space-y-4 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editComponentId">Component ID (Read-only)</Label>
-                  <Input id="editComponentId" value={componentId} readOnly disabled className="mt-1 bg-muted/50" />
-                </div>
-                <div>
-                  <Label htmlFor="editDisplayName">Display Name</Label>
-                  <Input id="editDisplayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g., Custom Button" required disabled={isSaving} className="mt-1" />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="editComponentType">Component Type (Renderer Key)</Label>
-                <Input id="editComponentType" value={componentType} onChange={(e) => setComponentType(e.target.value)} placeholder="e.g., Button, DataTable" required disabled={isSaving} className="mt-1" />
-                <p className="text-xs text-muted-foreground mt-1">This key links to the actual rendering React component in the system.</p>
-              </div>
-
-              <div>
-                <Label htmlFor="editDescription">Description (Optional)</Label>
-                <Textarea id="editDescription" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Briefly describe what this component does." rows={2} disabled={isSaving} className="mt-1" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editIconUrl">Icon URL (Optional)</Label>
-                  <Input id="editIconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://placehold.co/40x40.png" disabled={isSaving} className="mt-1" />
-                </div>
-                <div>
-                  <Label htmlFor="editTags">Tags (Optional, Comma-separated)</Label>
-                  <Input 
-                    id="editTags"
-                    value={tagsString} 
-                    onChange={(e) => setTagsString(e.target.value)} 
-                    placeholder="e.g., input, display, material" 
-                    disabled={isSaving} 
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="editConfigurablePropertiesJson">Configurable Properties Schema (JSON)</Label>
-                <Textarea
-                  id="editConfigurablePropertiesJson"
-                  value={configurablePropertiesJson}
-                  onChange={(e) => setConfigurablePropertiesJson(e.target.value)}
-                  rows={8}
-                  className={`font-mono text-xs mt-1 ${jsonError ? 'border-destructive ring-1 ring-destructive' : ''}`}
-                  placeholder={`{ "text": { "type": "string", "label": "Button Text", "defaultValue": "Click Me" } }`}
-                  disabled={isSaving}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Define the schema for properties users can configure.</p>
-              </div>
-
-              <div>
-                <Label htmlFor="editTemplateString">Render Template (Optional, e.g., Handlebars-like)</Label>
-                <Textarea
-                  id="editTemplateString"
-                  value={templateString}
-                  onChange={(e) => setTemplateString(e.target.value)}
-                  rows={5}
-                  className="font-mono text-xs mt-1"
-                  placeholder={`<button class="my-button">{{props.text}}</button>`}
-                  disabled={isSaving}
-                />
-                <p className="text-xs text-muted-foreground mt-1">HTML structure with {{props.propertyName}} placeholders.</p>
-              </div>
-            </form>
-
-            <div className="p-6 border-l flex flex-col gap-4">
-              <div>
-                <h3 className="text-md font-semibold mb-2 flex items-center">
-                  <Eye className="mr-2 h-4 w-4 text-primary" />
-                  Configurable Properties Preview (Defaults)
-                </h3>
-                {jsonError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Schema JSON Error</AlertTitle>
-                    <AlertDescription>{jsonError}. Fix to see preview.</AlertDescription>
-                  </Alert>
-                )}
-                {!jsonError && parsedSchemaForPreview && Object.keys(parsedSchemaForPreview).length > 0 && (
-                  <ScrollArea className="h-[200px] p-3 border rounded-md bg-muted/30">
-                    <div className="space-y-3">
-                      {Object.entries(parsedSchemaForPreview).map(([key, prop]) => (
-                        <div key={key} className="p-2 border-b last:border-b-0">
-                          <div className="text-sm font-medium">{prop.label || key}</div>
-                           <div className="text-xs text-muted-foreground">
-                            <span>Type: </span><Badge variant="secondary" className="text-xs">{prop.type}</Badge>
-                          </div>
-                          {prop.defaultValue !== undefined && (
-                            <div className="text-xs text-muted-foreground">
-                              <span>Default: </span><code className="bg-background/50 px-1 py-0.5 rounded text-foreground">{String(prop.defaultValue)}</code>
-                            </div>
-                          )}
-                          {prop.helperText && <div className="text-xs text-muted-foreground mt-1"><em>{prop.helperText}</em></div>}
-                          {prop.group && <div className="text-xs text-muted-foreground">Group: {prop.group}</div>}
-                           {prop.options && Array.isArray(prop.options) && (
-                              <div className="text-xs text-muted-foreground">
-                                  Options: {prop.options.join(', ')}
-                              </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-                {!jsonError && (!parsedSchemaForPreview || Object.keys(parsedSchemaForPreview).length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No configurable properties defined or JSON is empty.
-                  </p>
-                )}
-              </div>
-              <div className="flex-1 flex flex-col min-h-[200px]">
-                 <h3 className="text-md font-semibold mb-2 flex items-center">
-                  <Wand2 className="mr-2 h-4 w-4 text-primary" />
-                  Visual Template Preview
-                </h3>
-                <div className="p-4 border rounded-md bg-muted/30 flex-1 overflow-auto">
-                  <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Basic HTML preview based on 'Render Template' and default property values. Styles are inherited. No scripts execute.
-                </p>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-
-        <DialogFooter className="p-6 pt-4 border-t bg-background">
-          <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="submit" onClick={handleSubmit} disabled={isSaving || !!jsonError}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black' }} className="force-light-mode-text-for-debug">
+       {/* Simplified Modal Content for Debugging */}
+      <div style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '500px', height: '300px', overflowY: 'auto' }}>
+        <h2>Edit Component (Simplified Debug View)</h2>
+        <p>ID: {componentToEdit?.id || 'N/A'}</p>
+        <p>Display Name: {componentToEdit?.displayName || 'N/A'}</p>
+        <button onClick={() => onOpenChange(false)} style={{ marginTop: '20px', padding: '10px', border: '1px solid black' }}>
+          Close
+        </button>
+        <button onClick={handleSubmit} style={{ marginTop: '20px', marginLeft: '10px', padding: '10px', border: '1px solid black' }} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save (Debug)'}
+        </button>
+      </div>
+    </div>
   );
 }
