@@ -48,7 +48,7 @@ export default function EditGlobalComponentClient({
   const [iconUrl, setIconUrl] = useState('');
   const [tagsString, setTagsString] = useState('');
   const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState('');
-  const [templateString, setTemplateString] = useState('');
+  const [templateString, setTemplateString] = useState(''); // Renamed from 'template'
 
   const [parsedSchemaForPreview, setParsedSchemaForPreview] = useState<Record<string, ConfigurablePropertySchema> | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -64,23 +64,31 @@ export default function EditGlobalComponentClient({
       setTagsString((componentToEdit.tags || []).join(', '));
       
       let initialJsonString = '{}';
+      // Ensure schema is treated as an object before stringifying if it's coming from Firestore as such
+      // Or use it as a string if it's already stored that way (though object is preferred in Firestore model)
       if (componentToEdit.configurablePropertiesSchema) {
-        try {
-          // Ensure schema is treated as an object before stringifying
-          const schemaObject = typeof componentToEdit.configurablePropertiesSchema === 'string' 
-                               ? JSON.parse(componentToEdit.configurablePropertiesSchema) 
-                               : componentToEdit.configurablePropertiesSchema;
-          initialJsonString = JSON.stringify(schemaObject, null, 2);
-        } catch (e) {
-          console.warn("Error processing schema for editing, might be invalid JSON string:", e);
-          // Fallback to string if it was a string and couldn't be parsed, or empty object
-          initialJsonString = typeof componentToEdit.configurablePropertiesSchema === 'string' 
-                              ? componentToEdit.configurablePropertiesSchema 
-                              : '{}';
+        if (typeof componentToEdit.configurablePropertiesSchema === 'object') {
+          try {
+            initialJsonString = JSON.stringify(componentToEdit.configurablePropertiesSchema, null, 2);
+          } catch (e) {
+            console.error("Error stringifying schema for editing:", e);
+            initialJsonString = '{}'; // Fallback
+          }
+        } else if (typeof componentToEdit.configurablePropertiesSchema === 'string') {
+          // If it's already a string, try to parse and re-stringify for consistent formatting
+          try {
+            const parsed = JSON.parse(componentToEdit.configurablePropertiesSchema);
+            initialJsonString = JSON.stringify(parsed, null, 2);
+          } catch (e) {
+            // If parsing fails, use the string as is (it might be malformed)
+            initialJsonString = componentToEdit.configurablePropertiesSchema;
+            console.warn("Schema is a string but not valid JSON, using as is for textarea:", e);
+          }
         }
       }
       setConfigurablePropertiesJson(initialJsonString);
       setTemplateString(componentToEdit.template || '');
+      
       // Reset previews when component changes
       setParsedSchemaForPreview(null); 
       setJsonError(null);
@@ -102,8 +110,8 @@ export default function EditGlobalComponentClient({
     }
   }, [componentToEdit]);
 
+  // Effect for parsing Configurable Properties JSON for preview
   useEffect(() => {
-    // Debounced parsing for schema preview
     const handler = setTimeout(() => {
       if (configurablePropertiesJson.trim() === '') {
         setParsedSchemaForPreview({});
@@ -116,7 +124,7 @@ export default function EditGlobalComponentClient({
           setParsedSchemaForPreview(parsed);
           setJsonError(null);
         } else {
-          setJsonError("Invalid JSON: Schema must be a valid JSON object (not an array).");
+          setJsonError("Invalid JSON: Schema must be a valid JSON object (not an array or other type).");
           setParsedSchemaForPreview(null);
         }
       } catch (error) {
@@ -127,16 +135,16 @@ export default function EditGlobalComponentClient({
         }
         setParsedSchemaForPreview(null);
       }
-    }, 500); // Debounce time: 500ms
+    }, 500); 
 
     return () => {
       clearTimeout(handler);
     };
   }, [configurablePropertiesJson]);
 
+  // Effect for generating Visual Template Preview HTML
   useEffect(() => {
-    // Debounced generation for HTML preview
-     const handler = setTimeout(() => {
+    const handler = setTimeout(() => {
         if (jsonError || !parsedSchemaForPreview || !templateString.trim()) {
           setPreviewHtml('<p class="text-muted-foreground text-center text-xs py-4">Enter valid schema and template for visual preview.</p>');
           return;
@@ -146,8 +154,9 @@ export default function EditGlobalComponentClient({
         try {
           Object.entries(parsedSchemaForPreview).forEach(([key, schemaProp]) => {
             const defaultValue = schemaProp.defaultValue !== undefined ? String(schemaProp.defaultValue) : '';
-            // Regex to match {{props.key}}, {{ props.key }}, {{props. key}}, etc.
-            const regex = new RegExp(`\\{\\{\\s*props\\s*\\.\\s*${key}\\s*\\s*\\}\\}`, 'g');
+            // Regex to match {{props.key}}, {{ props.key }}, {{props. key }}, etc.
+            // Also matches {{ props.key }} - ensuring robustness with spaces
+            const regex = new RegExp(`\\{\\{\\s*props\\s*\\.\\s*${key}\\s*\\}\\}`, 'g');
             html = html.replace(regex, defaultValue);
           });
           setPreviewHtml(html);
@@ -155,7 +164,7 @@ export default function EditGlobalComponentClient({
           console.error("Error generating preview HTML:", e);
           setPreviewHtml('<p class="text-red-500 text-xs text-center py-4">Error generating visual preview from template.</p>');
         }
-    }, 700); // Slightly longer debounce for template processing
+    }, 700);
 
     return () => {
       clearTimeout(handler);
@@ -184,7 +193,14 @@ export default function EditGlobalComponentClient({
 
     let parsedConfigurableProperties: Record<string, ConfigurablePropertySchema>;
     try {
-      parsedConfigurableProperties = JSON.parse(configurablePropertiesJson);
+      // Ensure we use the latest parsed schema, or parse again if not available
+      if (parsedSchemaForPreview && !jsonError) {
+        parsedConfigurableProperties = parsedSchemaForPreview;
+      } else if (configurablePropertiesJson.trim() === ''){
+        parsedConfigurableProperties = {};
+      } else {
+        parsedConfigurableProperties = JSON.parse(configurablePropertiesJson);
+      }
     } catch (error) {
       toast({
         title: 'Invalid JSON',
@@ -197,7 +213,8 @@ export default function EditGlobalComponentClient({
     setIsSaving(true);
     const currentTags = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
 
-    const updatedComponentDef: Partial<GlobalComponentDefinition> = {
+    // Only include fields that are meant to be updated. ID should not change.
+    const updatedComponentDef: Partial<Omit<GlobalComponentDefinition, 'id' | 'createdAt'>> = {
       displayName: displayName.trim(),
       type: componentType.trim(),
       description: description.trim() || undefined,
@@ -205,7 +222,7 @@ export default function EditGlobalComponentClient({
       configurablePropertiesSchema: parsedConfigurableProperties,
       template: templateString.trim() || undefined,
       tags: currentTags.length > 0 ? currentTags : undefined,
-      lastModified: serverTimestamp() as any,
+      lastModified: serverTimestamp() as any, // Firestore will convert this
     };
 
     try {
@@ -314,12 +331,12 @@ export default function EditGlobalComponentClient({
                     <div className="space-y-3 text-xs">
                       {Object.entries(parsedSchemaForPreview).map(([key, prop]) => (
                         <div key={key} className="p-2 border-b last:border-b-0">
-                          <p className="font-medium text-foreground">{prop.label || key}</p>
-                          <p><Badge variant="secondary" className="text-xs">{prop.type}</Badge></p>
-                          {prop.defaultValue !== undefined && <p>Default: <span className="text-muted-foreground">{String(prop.defaultValue)}</span></p>}
-                          {prop.helperText && <p className="italic text-muted-foreground/80">{prop.helperText}</p>}
-                          {prop.group && <p>Group: <span className="text-muted-foreground">{prop.group}</span></p>}
-                           {prop.options && prop.options.length > 0 && <p>Options: <span className="text-muted-foreground">{prop.options.join(', ')}</span></p>}
+                          <div className="font-medium text-foreground">{prop.label || key}</div>
+                          <div><Badge variant="secondary" className="text-xs">{prop.type}</Badge></div>
+                          {prop.defaultValue !== undefined && <div>Default: <span className="text-muted-foreground">{String(prop.defaultValue)}</span></div>}
+                          {prop.helperText && <div className="italic text-muted-foreground/80 text-xs">{prop.helperText}</div>}
+                          {prop.group && <div>Group: <span className="text-muted-foreground">{prop.group}</span></div>}
+                           {prop.options && prop.options.length > 0 && <div>Options: <span className="text-muted-foreground">{prop.options.join(', ')}</span></div>}
                         </div>
                       ))}
                     </div>
