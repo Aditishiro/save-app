@@ -14,6 +14,24 @@ import { db } from '@/lib/firebase/firebase';
 import { collection, addDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const platformPurposeOptions = [
+  { value: 'core_banking_system', label: 'Core Banking System' },
+  { value: 'loan_origination_system', label: 'Loan Origination System' },
+  { value: 'online_banking_portal', label: 'Online Banking Portal' },
+  { value: 'mobile_banking_app', label: 'Mobile Banking App' },
+  { value: 'payment_gateway', label: 'Payment Gateway' },
+  { value: 'fraud_detection_system', label: 'Fraud Detection System' },
+  { value: 'crm_financial_services', label: 'CRM for Financial Services' },
+  { value: 'wealth_management_platform', label: 'Wealth Management Platform' },
+  { value: 'trading_platform', label: 'Trading Platform' },
+  { value: 'regulatory_reporting_system', label: 'Regulatory Reporting System' },
+  { value: 'treasury_management_system', label: 'Treasury Management System' },
+  { value: 'kyc_aml_platform', label: 'KYC/AML Platform' },
+  { value: 'customer_onboarding_portal', label: 'Customer Onboarding Portal' },
+  { value: 'other', label: 'Other (Please specify below)' },
+];
 
 export default function CreatePlatformPage() {
   const { currentUser } = useAuth();
@@ -22,6 +40,8 @@ export default function CreatePlatformPage() {
 
   const [platformName, setPlatformName] = useState<string>("");
   const [platformDescription, setPlatformDescription] = useState<string>("");
+  const [selectedPurpose, setSelectedPurpose] = useState<string>("");
+  const [customPurposeDescription, setCustomPurposeDescription] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const handleSavePlatform = async () => {
@@ -33,14 +53,26 @@ export default function CreatePlatformPage() {
       toast({ title: "Validation Error", description: "Platform name cannot be empty.", variant: "destructive" });
       return;
     }
+    if (!selectedPurpose) {
+      toast({ title: "Validation Error", description: "Please select a platform purpose.", variant: "destructive" });
+      return;
+    }
+    if (selectedPurpose === "other" && !customPurposeDescription.trim()) {
+      toast({ title: "Validation Error", description: "Please specify the platform purpose if 'Other' is selected.", variant: "destructive" });
+      return;
+    }
+
 
     setIsSaving(true);
+
+    const finalPlatformPurpose = selectedPurpose === "other" ? customPurposeDescription.trim() : platformPurposeOptions.find(opt => opt.value === selectedPurpose)?.label || selectedPurpose;
 
     try {
       const docRef = await addDoc(collection(db, "platforms"), {
         tenantId: currentUser.uid, // Using UID as tenantId proxy for now
-        name: platformName,
-        description: platformDescription,
+        name: platformName.trim(),
+        description: platformDescription.trim(),
+        platformPurpose: finalPlatformPurpose,
         status: 'draft', // Default status
         createdAt: serverTimestamp() as Timestamp,
         lastModified: serverTimestamp() as Timestamp,
@@ -77,7 +109,7 @@ export default function CreatePlatformPage() {
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
             <CardTitle>Platform Details</CardTitle>
-            <CardDescription>Enter the name and description for your new platform.</CardDescription>
+            <CardDescription>Enter the name, purpose, and description for your new platform.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div>
@@ -89,8 +121,47 @@ export default function CreatePlatformPage() {
                 placeholder="e.g., Client Portal Q1"
                 className="mt-1"
                 disabled={isSaving}
+                required
                 />
             </div>
+
+            <div>
+              <Label htmlFor="platformPurposeSelect">Platform Purpose/Type</Label>
+              <Select
+                value={selectedPurpose}
+                onValueChange={setSelectedPurpose}
+                disabled={isSaving}
+                required
+              >
+                <SelectTrigger id="platformPurposeSelect" className="mt-1">
+                  <SelectValue placeholder="Select platform purpose..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {platformPurposeOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedPurpose === 'other' && (
+              <div>
+                <Label htmlFor="customPurposeDescription">Specify Platform Purpose</Label>
+                <Textarea
+                  id="customPurposeDescription"
+                  value={customPurposeDescription}
+                  onChange={(e) => setCustomPurposeDescription(e.target.value)}
+                  placeholder="Describe the specific purpose or type of this platform..."
+                  rows={3}
+                  className="mt-1"
+                  disabled={isSaving}
+                  required
+                />
+              </div>
+            )}
+
             <div>
                 <Label htmlFor="platformDescription">Description (Optional)</Label>
                 <Textarea
