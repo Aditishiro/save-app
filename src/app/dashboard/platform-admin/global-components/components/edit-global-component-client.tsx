@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Eye } from 'lucide-react';
+import { Loader2, Save, Eye, Wand2 } from 'lucide-react';
 import { db } from '@/lib/firebase/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { GlobalComponentDefinition, ConfigurablePropertySchema } from '@/platform-builder/data-models';
@@ -28,7 +28,7 @@ interface EditGlobalComponentClientProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   componentToEdit: GlobalComponentDefinition | null;
-  onClose: () => void; // For closing and potentially refetching list
+  onClose: () => void; 
 }
 
 export default function EditGlobalComponentClient({
@@ -48,10 +48,11 @@ export default function EditGlobalComponentClient({
   const [iconUrl, setIconUrl] = useState('');
   const [tagsString, setTagsString] = useState('');
   const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState('');
-  const [template, setTemplate] = useState('');
+  const [templateString, setTemplateString] = useState('');
 
   const [parsedSchemaForPreview, setParsedSchemaForPreview] = useState<Record<string, ConfigurablePropertySchema> | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string>('');
 
   useEffect(() => {
     if (componentToEdit) {
@@ -62,22 +63,34 @@ export default function EditGlobalComponentClient({
       setIconUrl(componentToEdit.iconUrl || '');
       setTagsString((componentToEdit.tags || []).join(', '));
       
-      let initialJsonString = '';
-      if (typeof componentToEdit.configurablePropertiesSchema === 'object' && componentToEdit.configurablePropertiesSchema !== null) {
-        initialJsonString = JSON.stringify(componentToEdit.configurablePropertiesSchema, null, 2);
-      } else if (typeof componentToEdit.configurablePropertiesSchema === 'string') {
-        // If it's already a string (e.g. from older data or direct input)
-        initialJsonString = componentToEdit.configurablePropertiesSchema || '{}';
-      } else {
-        initialJsonString = '{}';
+      let initialJsonString = '{}';
+      if (componentToEdit.configurablePropertiesSchema) {
+          try {
+            const schemaObject = typeof componentToEdit.configurablePropertiesSchema === 'string' 
+                                 ? JSON.parse(componentToEdit.configurablePropertiesSchema) 
+                                 : componentToEdit.configurablePropertiesSchema;
+            initialJsonString = JSON.stringify(schemaObject, null, 2);
+          } catch (e) {
+              console.warn("Error processing schema for editing, might be invalid JSON string:", e);
+              initialJsonString = typeof componentToEdit.configurablePropertiesSchema === 'string' 
+                                  ? componentToEdit.configurablePropertiesSchema : '{}';
+          }
       }
       setConfigurablePropertiesJson(initialJsonString);
-      setTemplate(componentToEdit.template || '');
+      setTemplateString(componentToEdit.template || '');
+    } else {
+      setComponentId('');
+      setDisplayName('');
+      setComponentType('');
+      setDescription('');
+      setIconUrl('');
+      setTagsString('');
+      setConfigurablePropertiesJson('{}');
+      setTemplateString('');
     }
   }, [componentToEdit]);
 
   useEffect(() => {
-    // Update preview when JSON string changes
     if (configurablePropertiesJson.trim() === '') {
       setParsedSchemaForPreview({});
       setJsonError(null);
@@ -89,19 +102,38 @@ export default function EditGlobalComponentClient({
         setParsedSchemaForPreview(parsed);
         setJsonError(null);
       } else {
-        setJsonError("Invalid JSON: Parsed value is not an object.");
+        setJsonError("Invalid JSON: Schema must be a valid JSON object.");
         setParsedSchemaForPreview(null);
       }
     } catch (error) {
       if (error instanceof Error) {
-         setJsonError(`JSON Syntax Error: ${error.message.split('\n')[0]}`); // Show only the first line of the error
+         setJsonError(`Schema JSON Syntax Error: ${error.message.split('\n')[0]}`);
       } else {
-         setJsonError("Invalid JSON syntax.");
+         setJsonError("Invalid Schema JSON syntax.");
       }
       setParsedSchemaForPreview(null);
     }
   }, [configurablePropertiesJson]);
 
+  useEffect(() => {
+    if (jsonError || !parsedSchemaForPreview || !templateString) {
+      setPreviewHtml('<p class="text-muted-foreground text-center text-xs py-4">Enter valid schema and template for preview.</p>');
+      return;
+    }
+
+    let html = templateString;
+    try {
+      Object.entries(parsedSchemaForPreview).forEach(([key, schemaProp]) => {
+        const defaultValue = schemaProp.defaultValue !== undefined ? String(schemaProp.defaultValue) : '';
+        const regex = new RegExp(`\\{\\{\\s*props\\.${key}\\s*\\}\\}`, 'g');
+        html = html.replace(regex, defaultValue);
+      });
+      setPreviewHtml(html);
+    } catch (e) {
+      console.error("Error generating preview HTML:", e);
+      setPreviewHtml('<p class="text-red-500 text-xs text-center py-4">Error generating preview.</p>');
+    }
+  }, [templateString, parsedSchemaForPreview, jsonError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,17 +145,18 @@ export default function EditGlobalComponentClient({
       });
       return;
     }
+    if (jsonError) {
+      toast({
+        title: 'Invalid JSON',
+        description: `Configurable Properties Schema JSON is not valid: ${jsonError}`,
+        variant: 'destructive',
+      });
+      return;
+    }
 
     let parsedConfigurableProperties: Record<string, ConfigurablePropertySchema>;
     try {
-      if (configurablePropertiesJson.trim()) {
-        parsedConfigurableProperties = JSON.parse(configurablePropertiesJson);
-         if (typeof parsedConfigurableProperties !== 'object' || parsedConfigurableProperties === null) {
-          throw new Error("Schema must be a valid JSON object.");
-        }
-      } else {
-        parsedConfigurableProperties = {}; 
-      }
+      parsedConfigurableProperties = JSON.parse(configurablePropertiesJson);
     } catch (error) {
       toast({
         title: 'Invalid JSON',
@@ -142,7 +175,7 @@ export default function EditGlobalComponentClient({
       description: description.trim() || undefined,
       iconUrl: iconUrl.trim() || undefined,
       configurablePropertiesSchema: parsedConfigurableProperties,
-      template: template.trim() || undefined,
+      template: templateString.trim() || undefined,
       tags: currentTags.length > 0 ? currentTags : undefined,
       lastModified: serverTimestamp() as any,
     };
@@ -168,7 +201,7 @@ export default function EditGlobalComponentClient({
     }
   };
 
-  if (!componentToEdit && isOpen) { // Ensure componentToEdit is available if dialog is open
+  if (!componentToEdit && isOpen) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent>
@@ -220,7 +253,7 @@ export default function EditGlobalComponentClient({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="editIconUrl">Icon URL (Optional)</Label>
-                  <Input id="editIconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://example.com/icon.png" disabled={isSaving} className="mt-1" />
+                  <Input id="editIconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://placehold.co/40x40.png" disabled={isSaving} className="mt-1" />
                 </div>
                 <div>
                   <Label htmlFor="editTags">Tags (Optional, Comma-separated)</Label>
@@ -243,71 +276,83 @@ export default function EditGlobalComponentClient({
                   onChange={(e) => setConfigurablePropertiesJson(e.target.value)}
                   rows={8}
                   className={`font-mono text-xs mt-1 ${jsonError ? 'border-destructive ring-1 ring-destructive' : ''}`}
-                  placeholder={`{ "text": { "type": "string", "label": "Button Text" } }`}
+                  placeholder={`{ "text": { "type": "string", "label": "Button Text", "defaultValue": "Click Me" } }`}
                   disabled={isSaving}
                 />
                 <p className="text-xs text-muted-foreground mt-1">Define the schema for properties users can configure.</p>
-                 {jsonError && <p className="text-xs text-destructive mt-1">{jsonError}</p>}
               </div>
 
               <div>
-                <Label htmlFor="editTemplate">Render Template (Optional, e.g., Handlebars)</Label>
+                <Label htmlFor="editTemplateString">Render Template (Optional, e.g., Handlebars-like)</Label>
                 <Textarea
-                  id="editTemplate"
-                  value={template}
-                  onChange={(e) => setTemplate(e.target.value)}
+                  id="editTemplateString"
+                  value={templateString}
+                  onChange={(e) => setTemplateString(e.target.value)}
                   rows={5}
                   className="font-mono text-xs mt-1"
-                  placeholder={`<button>{{props.text}}</button>`}
+                  placeholder={`<button class="my-button">{{props.text}}</button>`}
                   disabled={isSaving}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Define the component's HTML structure if applicable.</p>
+                <p className="text-xs text-muted-foreground mt-1">HTML structure with {{props.propertyName}} placeholders.</p>
               </div>
             </form>
 
-            {/* Preview Section */}
-            <div className="p-6 border-l">
-              <h3 className="text-lg font-semibold mb-3 flex items-center">
-                <Eye className="mr-2 h-5 w-5 text-primary" />
-                Configurable Properties Preview (Defaults)
-              </h3>
-              {jsonError && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertTitle>JSON Error</AlertTitle>
-                  <AlertDescription>{jsonError}. Preview cannot be generated.</AlertDescription>
-                </Alert>
-              )}
-              {!jsonError && parsedSchemaForPreview && Object.keys(parsedSchemaForPreview).length > 0 && (
-                <ScrollArea className="h-[400px] p-3 border rounded-md bg-muted/30">
-                  <div className="space-y-3">
-                    {Object.entries(parsedSchemaForPreview).map(([key, prop]) => (
-                      <div key={key} className="p-2 border-b last:border-b-0">
-                        <div className="text-sm font-medium">{prop.label || key}</div>
-                        <div className="text-xs text-muted-foreground">
-                          <span>Type: </span><Badge variant="secondary" className="text-xs">{prop.type}</Badge>
-                        </div>
-                        {prop.defaultValue !== undefined && (
-                          <div className="text-xs text-muted-foreground">
-                            <span>Default: </span><code className="bg-background/50 px-1 py-0.5 rounded text-foreground">{String(prop.defaultValue)}</code>
+            <div className="p-6 border-l flex flex-col gap-4">
+              <div>
+                <h3 className="text-md font-semibold mb-2 flex items-center">
+                  <Eye className="mr-2 h-4 w-4 text-primary" />
+                  Configurable Properties Preview (Defaults)
+                </h3>
+                {jsonError && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertTitle>Schema JSON Error</AlertTitle>
+                    <AlertDescription>{jsonError}. Fix to see preview.</AlertDescription>
+                  </Alert>
+                )}
+                {!jsonError && parsedSchemaForPreview && Object.keys(parsedSchemaForPreview).length > 0 && (
+                  <ScrollArea className="h-[200px] p-3 border rounded-md bg-muted/30">
+                    <div className="space-y-3">
+                      {Object.entries(parsedSchemaForPreview).map(([key, prop]) => (
+                        <div key={key} className="p-2 border-b last:border-b-0">
+                          <div className="text-sm font-medium">{prop.label || key}</div>
+                           <div className="text-xs text-muted-foreground">
+                            <span>Type: </span><Badge variant="secondary" className="text-xs">{prop.type}</Badge>
                           </div>
-                        )}
-                        {prop.helperText && <div className="text-xs text-muted-foreground mt-1"><em>{prop.helperText}</em></div>}
-                        {prop.group && <div className="text-xs text-muted-foreground">Group: {prop.group}</div>}
-                         {prop.options && Array.isArray(prop.options) && (
+                          {prop.defaultValue !== undefined && (
                             <div className="text-xs text-muted-foreground">
-                                Options: {prop.options.join(', ')}
+                              <span>Default: </span><code className="bg-background/50 px-1 py-0.5 rounded text-foreground">{String(prop.defaultValue)}</code>
                             </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-              {!jsonError && (!parsedSchemaForPreview || Object.keys(parsedSchemaForPreview).length === 0) && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No configurable properties defined or JSON is empty.
+                          )}
+                          {prop.helperText && <div className="text-xs text-muted-foreground mt-1"><em>{prop.helperText}</em></div>}
+                          {prop.group && <div className="text-xs text-muted-foreground">Group: {prop.group}</div>}
+                           {prop.options && Array.isArray(prop.options) && (
+                              <div className="text-xs text-muted-foreground">
+                                  Options: {prop.options.join(', ')}
+                              </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+                {!jsonError && (!parsedSchemaForPreview || Object.keys(parsedSchemaForPreview).length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No configurable properties defined or JSON is empty.
+                  </p>
+                )}
+              </div>
+              <div className="flex-1 flex flex-col min-h-[200px]">
+                 <h3 className="text-md font-semibold mb-2 flex items-center">
+                  <Wand2 className="mr-2 h-4 w-4 text-primary" />
+                  Visual Template Preview
+                </h3>
+                <div className="p-4 border rounded-md bg-muted/30 flex-1 overflow-auto">
+                  <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Basic HTML preview based on 'Render Template' and default property values. Styles are inherited. No scripts execute.
                 </p>
-              )}
+              </div>
             </div>
           </div>
         </ScrollArea>
@@ -327,4 +372,3 @@ export default function EditGlobalComponentClient({
     </Dialog>
   );
 }
-
