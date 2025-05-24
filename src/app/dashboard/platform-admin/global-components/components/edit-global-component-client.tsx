@@ -63,7 +63,7 @@ export default function EditGlobalComponentClient({
       setTagsString((componentToEdit.tags || []).join(', '));
       
       let initialJsonString = '';
-      if (typeof componentToEdit.configurablePropertiesSchema === 'object') {
+      if (typeof componentToEdit.configurablePropertiesSchema === 'object' && componentToEdit.configurablePropertiesSchema !== null) {
         initialJsonString = JSON.stringify(componentToEdit.configurablePropertiesSchema, null, 2);
       } else if (typeof componentToEdit.configurablePropertiesSchema === 'string') {
         // If it's already a string (e.g. from older data or direct input)
@@ -282,21 +282,21 @@ export default function EditGlobalComponentClient({
                   <div className="space-y-3">
                     {Object.entries(parsedSchemaForPreview).map(([key, prop]) => (
                       <div key={key} className="p-2 border-b last:border-b-0">
-                        <p className="text-sm font-medium">{prop.label || key}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Type: <Badge variant="secondary" className="text-xs">{prop.type}</Badge>
-                        </p>
+                        <div className="text-sm font-medium">{prop.label || key}</div>
+                        <div className="text-xs text-muted-foreground">
+                          <span>Type: </span><Badge variant="secondary" className="text-xs">{prop.type}</Badge>
+                        </div>
                         {prop.defaultValue !== undefined && (
-                          <p className="text-xs text-muted-foreground">
-                            Default: <code className="bg-background/50 px-1 py-0.5 rounded text-foreground">{String(prop.defaultValue)}</code>
-                          </p>
+                          <div className="text-xs text-muted-foreground">
+                            <span>Default: </span><code className="bg-background/50 px-1 py-0.5 rounded text-foreground">{String(prop.defaultValue)}</code>
+                          </div>
                         )}
-                        {prop.helperText && <p className="text-xs text-muted-foreground mt-1"><em>{prop.helperText}</em></p>}
-                        {prop.group && <p className="text-xs text-muted-foreground">Group: {prop.group}</p>}
+                        {prop.helperText && <div className="text-xs text-muted-foreground mt-1"><em>{prop.helperText}</em></div>}
+                        {prop.group && <div className="text-xs text-muted-foreground">Group: {prop.group}</div>}
                          {prop.options && Array.isArray(prop.options) && (
-                            <p className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                                 Options: {prop.options.join(', ')}
-                            </p>
+                            </div>
                         )}
                       </div>
                     ))}
