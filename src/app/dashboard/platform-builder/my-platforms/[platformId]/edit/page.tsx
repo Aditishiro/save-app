@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
-import { Loader2, AlertTriangle, ArrowLeft, Save, LayoutDashboard, Settings2, PlusCircle, Trash2, Palette as PaletteIcon, Move } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, Save, LayoutDashboard, Settings2, Palette as PaletteIcon, Move, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, writeBatch, setDoc } from 'firebase/firestore';
@@ -111,12 +111,11 @@ export default function EditPlatformPage() {
       if (!platformId && !isLoading) router.push('/dashboard/platform-builder/my-platforms');
       return;
     }
-    setIsLoading(true);
+    
     const platformDocRef = doc(db, 'platforms', platformId);
     const unsubscribe = onSnapshot(platformDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = { id: docSnap.id, ...docSnap.data() } as PlatformData;
-        // Assuming tenantId is uid for now - this needs proper multi-tenancy logic later
         if (data.tenantId !== currentUser.uid) { 
           setError("You are not authorized to edit this platform.");
           toast({ title: "Access Denied", description: "You do not have permission.", variant: "destructive" });
@@ -135,7 +134,7 @@ export default function EditPlatformPage() {
           const newLayoutData: Omit<PlatformLayout, 'id'> = {
             name: 'Main Layout',
             platformId: platformId,
-            tenantId: currentUser.uid,
+            tenantId: currentUser.uid, // Important for multi-tenancy
             createdAt: serverTimestamp() as Timestamp,
             lastModified: serverTimestamp() as Timestamp,
           };
@@ -143,12 +142,16 @@ export default function EditPlatformPage() {
             updateDoc(platformDocRef, { defaultLayoutId: newLayoutId, lastModified: serverTimestamp() })
               .then(() => {
                 console.log(`Default layout ${newLayoutId} created and linked to platform ${platformId}.`);
+                // No need to set isLoading here, layout/instance effect will handle it
               })
               .catch(err => console.error("Error linking default layout:", err));
           }).catch(err => console.error("Error creating default layout document:", err));
+        } else {
+            // Only set isLoading to false here if no layout creation is triggered
+            // The layout/instance effect will set it false after its own loading
         }
       } else {
-        setError(`Platform with ID "${platformId}" not found.`);
+        setError("Platform with ID \"" + platformId + "\" not found.");
         toast({ title: "Platform Not Found", variant: "destructive" });
         router.push('/dashboard/platform-builder/my-platforms');
         setIsLoading(false);
@@ -159,7 +162,7 @@ export default function EditPlatformPage() {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [platformId, currentUser, router, toast, isLoading]);
+  }, [platformId, currentUser, router, toast]); // Removed isLoading from here
 
   // Fetch Global Component Definitions
   useEffect(() => {
@@ -180,9 +183,22 @@ export default function EditPlatformPage() {
     if (!platform?.defaultLayoutId) {
       setComponentInstances([]);
       setCurrentLayout(null);
-      if (platform && !isLoading) setIsLoading(false); 
+      // If platform is loaded but has no defaultLayoutId, it means one might be in the process of being created
+      // or there's a data issue. setIsLoading(false) should be handled carefully.
+      // If platform is loaded, and we know defaultLayoutId is definitely null/undefined and not pending creation,
+      // then it's safe to stop loading.
+      if (platform && platform.hasOwnProperty('defaultLayoutId') && !platform.defaultLayoutId) {
+        setIsLoading(false);
+      }
       return;
     }
+    
+    // Indicate loading for layout and instances if platform data is present
+    // This prevents setting isLoading to false too early if the platform fetch was quick
+    // but layout/instances are still pending.
+    if(!currentLayout && componentInstances.length === 0) setIsLoading(true);
+
+
     const layoutDocRef = doc(db, 'platforms', platformId, 'layouts', platform.defaultLayoutId);
     const unsubscribeLayout = onSnapshot(layoutDocRef, (layoutSnap) => {
       if (layoutSnap.exists()) {
@@ -191,30 +207,34 @@ export default function EditPlatformPage() {
 
         const instancesColRef = collection(db, 'platforms', platformId, 'components');
         const qInstances = query(instancesColRef, where('layoutId', '==', layoutData.id), orderBy('order', 'asc'));
+        
         const unsubscribeInstances = onSnapshot(qInstances, (snapshot) => {
           const fetchedInstances = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlatformComponentInstance));
           setComponentInstances(fetchedInstances);
-          if (isLoading) setIsLoading(false); 
+          setIsLoading(false); // All critical data for this effect is loaded
         }, (err) => {
           console.error("Error fetching component instances:", err);
+          toast({ title: "Error", description: "Could not load component instances.", variant: "destructive"});
           setComponentInstances([]);
-          if (isLoading) setIsLoading(false);
+          setIsLoading(false);
         });
-        return () => unsubscribeInstances();
+        return () => unsubscribeInstances(); // Cleanup instances listener
       } else {
         console.warn(`Default layout ${platform.defaultLayoutId} not found.`);
+        toast({ title: "Layout Error", description: `Layout ${platform.defaultLayoutId} not found.`, variant: "destructive"});
         setCurrentLayout(null);
         setComponentInstances([]);
-        if (isLoading) setIsLoading(false);
+        setIsLoading(false);
       }
     }, (err) => {
       console.error("Error fetching layout:", err);
+      toast({ title: "Error", description: "Could not load layout.", variant: "destructive"});
       setCurrentLayout(null);
       setComponentInstances([]);
-      if (isLoading) setIsLoading(false);
+      setIsLoading(false);
     });
-    return () => unsubscribeLayout();
-  }, [platformId, platform?.defaultLayoutId, platform, isLoading, toast]);
+    return () => unsubscribeLayout(); // Cleanup layout listener
+  }, [platformId, platform?.defaultLayoutId, toast]); // Removed platform and isLoading from here, rely on defaultLayoutId as key trigger
 
 
   const handleSaveChanges = async () => {
@@ -250,18 +270,17 @@ export default function EditPlatformPage() {
     }
     const newInstance: Omit<PlatformComponentInstance, 'id' | 'createdAt' | 'lastModified'> = {
         definitionId: componentDef.id,
-        type: componentDef.type, // Denormalize type for easier rendering
-        tenantId: currentUser.uid, // Assuming currentUser.uid as tenantId
+        type: componentDef.type, 
+        tenantId: currentUser.uid, 
         platformId: platformId,
         layoutId: currentLayout.id,
         configuredValues: {}, 
-        order: componentInstances.length, // Simple ordering for now
+        order: componentInstances.length, 
     };
 
-    // Pre-fill default values
-    if (componentDef.configurablePropertiesSchema) {
+    if (componentDef.configurablePropertiesSchema && typeof componentDef.configurablePropertiesSchema === 'object') {
         Object.entries(componentDef.configurablePropertiesSchema).forEach(([key, schema]) => {
-            if (schema.defaultValue !== undefined) {
+            if (schema && typeof schema === 'object' && schema.defaultValue !== undefined) {
                 newInstance.configuredValues[key] = schema.defaultValue;
             }
         });
@@ -274,7 +293,7 @@ export default function EditPlatformPage() {
     })
     .then((docRef) => {
         toast({ title: "Component Added", description: `${componentDef.displayName} added to canvas.`});
-        setSelectedInstanceId(docRef.id); // Select the newly added component
+        setSelectedInstanceId(docRef.id); 
     })
     .catch(err => {
         console.error("Error adding component instance: ", err);
@@ -289,11 +308,9 @@ export default function EditPlatformPage() {
       await deleteDoc(instanceDocRef);
       toast({ title: "Component Removed", description: "Component instance removed from canvas."});
       if (selectedInstanceId === instanceId) {
-        setSelectedInstanceId(null); // Deselect if the deleted item was selected
+        setSelectedInstanceId(null); 
       }
-      // Note: Re-ordering remaining components is not handled here, could be complex.
-      // A simpler approach for now is to rely on the `orderBy('order')` query.
-      // For robust re-ordering, you might need to update 'order' fields of subsequent items.
+      // Firestore listener will update the componentInstances state automatically
     } catch (deleteError) {
       console.error("Error deleting component instance:", deleteError);
       toast({ title: "Error", description: "Could not remove component instance.", variant: "destructive"});
@@ -303,7 +320,6 @@ export default function EditPlatformPage() {
   const handleUpdateInstanceProperty = (instanceId: string, propertyName: string, value: any) => {
     if (!platformId || !instanceId) return;
     const instanceDocRef = doc(db, 'platforms', platformId, 'components', instanceId);
-    // Use dot notation for updating nested fields in a map
     updateDoc(instanceDocRef, {
         [`configuredValues.${propertyName}`]: value,
         lastModified: serverTimestamp()
@@ -325,7 +341,6 @@ export default function EditPlatformPage() {
       }
       const newOrderedInstances = arrayMove(componentInstances, oldIndex, newIndex);
       
-      // Optimistically update UI. Firestore listener will eventually confirm.
       setComponentInstances(newOrderedInstances); 
 
       const batch = writeBatch(db);
@@ -339,7 +354,7 @@ export default function EditPlatformPage() {
       } catch (error) {
         console.error("Error updating component order:", error);
         toast({ title: "Order Error", description: "Failed to save new order.", variant: "destructive" });
-        // Consider reverting optimistic update if Firestore save fails (more complex)
+        // Firestore listener should eventually revert to the correct server state if batch fails.
       }
     }
   };
@@ -356,10 +371,21 @@ export default function EditPlatformPage() {
     );
   }
 
-  if (error || !platform) {
+  if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <PageHeader title="Error Loading Platform" description={error || "Platform data missing or access denied."} />
+        <PageHeader title="Error Loading Platform" description={error} />
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/platform-builder/my-platforms">Back to My Platforms</Link>
+        </Button>
+      </div>
+    );
+  }
+  
+  if (!platform) {
+     return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <PageHeader title="Platform Not Found" description="The platform data could not be loaded." />
         <Button variant="outline" asChild>
           <Link href="/dashboard/platform-builder/my-platforms">Back to My Platforms</Link>
         </Button>
@@ -367,12 +393,13 @@ export default function EditPlatformPage() {
     );
   }
 
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-[calc(100vh-theme(spacing.24))] overflow-hidden">
         <PageHeader
           title={`Edit Platform: ${platform.name}`}
-          description={`Layout: ${currentLayout?.name || 'N/A'}`}
+          description={`Layout: ${currentLayout?.name || 'Loading Layout...'}`}
           actions={
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
@@ -417,8 +444,7 @@ export default function EditPlatformPage() {
               </CardHeader>
               <ScrollArea className="flex-1">
                 <CardContent className="space-y-2 py-2"> 
-                  {isLoading && globalComponents.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-4" />}
-                  {!isLoading && globalComponents.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No global components defined.</p>}
+                  {globalComponents.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-4" />}
                   {globalComponents.map(comp => (
                     <Button
                       key={comp.id}
@@ -426,7 +452,7 @@ export default function EditPlatformPage() {
                       size="sm"
                       className="w-full justify-start text-xs h-8"
                       onClick={() => handleAddComponentToCanvas(comp)}
-                      disabled={isSaving}
+                      disabled={isSaving || isLoading} // Disable if overall page is loading too
                     >
                       {comp.iconUrl ? <img src={comp.iconUrl} alt="" className="h-3 w-3 mr-2" data-ai-hint="component icon" /> : <LayoutDashboard className="h-3 w-3 mr-2"/>}
                       {comp.displayName}
@@ -443,9 +469,10 @@ export default function EditPlatformPage() {
                   <CardTitle className="text-base">Canvas ({currentLayout?.name || 'No Layout'})</CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1 bg-muted/20 p-4 rounded-b-md">
-                {isLoading && componentInstances.length === 0 && currentLayout && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-10" />}
-                {!isLoading && componentInstances.length === 0 && currentLayout && <p className="text-sm text-muted-foreground text-center py-10">Drag or add components here.</p>}
-                {!currentLayout && !isLoading && <p className="text-sm text-muted-foreground text-center py-10">No layout selected or found.</p>}
+                {isLoading && componentInstances.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-10" />}
+                {!isLoading && !currentLayout && <p className="text-sm text-muted-foreground text-center py-10">No layout selected or found for this platform.</p>}
+                {!isLoading && currentLayout && componentInstances.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">Drag or add components here.</p>}
+                
                 <SortableContext items={componentInstances.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   {componentInstances.map(instance => (
                     <SortablePlatformComponentItem
@@ -468,84 +495,97 @@ export default function EditPlatformPage() {
                 <CardTitle className="text-base flex items-center gap-1">
                   <Settings2 className="h-4 w-4 text-primary" /> Component Properties
                 </CardTitle>
-                {selectedComponentDefinition && <CardDescription className="text-xs truncate">{selectedComponentDefinition.displayName} (ID: ...{selectedComponentInstance?.id.slice(-4)})</CardDescription>}
+                {selectedComponentInstance && selectedComponentDefinition && <CardDescription className="text-xs truncate">{selectedComponentDefinition.displayName} (ID: ...{selectedComponentInstance?.id.slice(-4)})</CardDescription>}
               </CardHeader>
               <ScrollArea className="flex-1">
                 <CardContent className="space-y-3 py-2"> 
                   {!selectedInstanceId && <p className="text-xs text-muted-foreground text-center py-4">Select a component on the canvas.</p>}
                   {selectedComponentInstance && selectedComponentDefinition && (
-                    Object.entries(selectedComponentDefinition.configurablePropertiesSchema || {}).map(([propKey, propSchema]: [string, ConfigurablePropertySchema]) => (
-                      <div key={propKey} className="space-y-1">
-                        <Label htmlFor={`prop-${propKey}`} className="text-xs">{propSchema.label || propKey}</Label>
-                        {propSchema.type === 'string' || propSchema.type === 'text' || propSchema.type === 'color' ? (
-                          <Input
-                            id={`prop-${propKey}`}
-                            type={propSchema.type === 'color' ? 'color' : 'text'}
-                            value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
-                            onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
-                            className="h-8 text-sm"
-                            placeholder={propSchema.placeholder}
-                            disabled={isSaving}
-                          />
-                        ) : propSchema.type === 'textarea' ? (
-                           <Textarea
-                            id={`prop-${propKey}`}
-                            value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
-                            onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
-                            rows={2}
-                            className="text-sm"
-                            placeholder={propSchema.placeholder}
-                            disabled={isSaving}
-                          />
-                        ) : propSchema.type === 'number' ? (
-                           <Input
-                            id={`prop-${propKey}`}
-                            type="number"
-                            value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
-                            onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, parseFloat(e.target.value))}
-                            className="h-8 text-sm"
-                            placeholder={propSchema.placeholder}
-                            disabled={isSaving}
-                          />
-                        ) : propSchema.type === 'boolean' ? (
-                          <div className="flex items-center space-x-2 pt-1">
-                            <Switch
-                                id={`prop-${propKey}`}
-                                checked={selectedComponentInstance.configuredValues[propKey] !== undefined ? !!selectedComponentInstance.configuredValues[propKey] : !!propSchema.defaultValue}
-                                onCheckedChange={(checked) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, checked)}
-                                className="h-4 w-auto data-[state=checked]:bg-primary data-[state=unchecked]:bg-input" // Ensure Switch styling is appropriate
-                                disabled={isSaving}
-                            />
-                            <Label htmlFor={`prop-${propKey}`} className="text-xs font-normal">{propSchema.helperText || propSchema.label || propKey}</Label>
+                    Object.entries(selectedComponentDefinition.configurablePropertiesSchema || {}).map(([propKey, propSchema]: [string, any]) => { // Using 'any' for propSchema temporarily for robustness
+                      // Added guard for propSchema and propSchema.type
+                      if (!propSchema || typeof propSchema !== 'object' || !propSchema.type || typeof propSchema.type !== 'string') {
+                        return (
+                          <div key={propKey} className="text-xs text-destructive p-2 border border-destructive/50 rounded-md">
+                            <p className="font-semibold">Invalid property schema for: "{propKey}"</p>
+                            <p>Schema definition might be missing or malformed in Global Component.</p>
                           </div>
-                        ) : propSchema.type === 'dropdown' && propSchema.options ? (
-                          <Select
-                            value={selectedComponentInstance.configuredValues[propKey] || propSchema.defaultValue || ''}
-                            onValueChange={(value) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, value)}
-                            disabled={isSaving}
-                          >
-                            <SelectTrigger id={`prop-${propKey}`} className="h-8 text-sm">
-                              <SelectValue placeholder={propSchema.placeholder || "Select..."} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {propSchema.options.map(opt => (
-                                <SelectItem key={opt} value={opt} className="text-sm">{opt}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : ( 
-                          <Input
-                            id={`prop-${propKey}`}
-                            value={selectedComponentInstance.configuredValues[propKey] !== undefined ? String(selectedComponentInstance.configuredValues[propKey]) : (propSchema.defaultValue !== undefined ? String(propSchema.defaultValue) : '')}
-                            onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
-                            className="h-8 text-sm"
-                            placeholder={propSchema.placeholder}
-                            disabled // For unhandled types
-                          />
-                        )}
-                        {propSchema.helperText && propSchema.type !== 'boolean' && <p className="text-xs text-muted-foreground mt-1">{propSchema.helperText}</p>}
-                      </div>
-                    ))
+                        );
+                      }
+                      const currentPropSchema = propSchema as ConfigurablePropertySchema; // Cast after validation
+
+                      return (
+                        <div key={propKey} className="space-y-1">
+                          <Label htmlFor={`prop-${propKey}`} className="text-xs">{currentPropSchema.label || propKey}</Label>
+                          {currentPropSchema.type === 'string' || currentPropSchema.type === 'text' || currentPropSchema.type === 'color' ? (
+                            <Input
+                              id={`prop-${propKey}`}
+                              type={currentPropSchema.type === 'color' ? 'color' : 'text'}
+                              value={selectedComponentInstance.configuredValues[propKey] || currentPropSchema.defaultValue || ''}
+                              onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder={currentPropSchema.placeholder}
+                              disabled={isSaving}
+                            />
+                          ) : currentPropSchema.type === 'textarea' ? (
+                            <Textarea
+                              id={`prop-${propKey}`}
+                              value={selectedComponentInstance.configuredValues[propKey] || currentPropSchema.defaultValue || ''}
+                              onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
+                              rows={2}
+                              className="text-sm"
+                              placeholder={currentPropSchema.placeholder}
+                              disabled={isSaving}
+                            />
+                          ) : currentPropSchema.type === 'number' ? (
+                            <Input
+                              id={`prop-${propKey}`}
+                              type="number"
+                              value={selectedComponentInstance.configuredValues[propKey] || currentPropSchema.defaultValue || ''}
+                              onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, parseFloat(e.target.value))}
+                              className="h-8 text-sm"
+                              placeholder={currentPropSchema.placeholder}
+                              disabled={isSaving}
+                            />
+                          ) : currentPropSchema.type === 'boolean' ? (
+                            <div className="flex items-center space-x-2 pt-1">
+                              <Switch
+                                  id={`prop-${propKey}`}
+                                  checked={selectedComponentInstance.configuredValues[propKey] !== undefined ? !!selectedComponentInstance.configuredValues[propKey] : !!currentPropSchema.defaultValue}
+                                  onCheckedChange={(checked) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, checked)}
+                                  className="h-4 w-auto data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                                  disabled={isSaving}
+                              />
+                              <Label htmlFor={`prop-${propKey}`} className="text-xs font-normal">{currentPropSchema.helperText || currentPropSchema.label || propKey}</Label>
+                            </div>
+                          ) : currentPropSchema.type === 'dropdown' && currentPropSchema.options ? (
+                            <Select
+                              value={selectedComponentInstance.configuredValues[propKey] || currentPropSchema.defaultValue || ''}
+                              onValueChange={(value) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, value)}
+                              disabled={isSaving}
+                            >
+                              <SelectTrigger id={`prop-${propKey}`} className="h-8 text-sm">
+                                <SelectValue placeholder={currentPropSchema.placeholder || "Select..."} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {currentPropSchema.options.map(opt => (
+                                  <SelectItem key={opt} value={opt} className="text-sm">{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : ( 
+                            <Input
+                              id={`prop-${propKey}`}
+                              value={selectedComponentInstance.configuredValues[propKey] !== undefined ? String(selectedComponentInstance.configuredValues[propKey]) : (currentPropSchema.defaultValue !== undefined ? String(currentPropSchema.defaultValue) : '')}
+                              onChange={(e) => handleUpdateInstanceProperty(selectedInstanceId!, propKey, e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder={currentPropSchema.placeholder}
+                              disabled // For unhandled types
+                            />
+                          )}
+                          {currentPropSchema.helperText && currentPropSchema.type !== 'boolean' && <p className="text-xs text-muted-foreground mt-1">{currentPropSchema.helperText}</p>}
+                        </div>
+                      );
+                    })
                   )}
                   {selectedInstanceId && !selectedComponentDefinition && <p className="text-xs text-destructive text-center py-4">Could not find global definition for selected component.</p>}
                 </CardContent>
@@ -557,3 +597,5 @@ export default function EditPlatformPage() {
     </DndContext>
   );
 }
+
+    
