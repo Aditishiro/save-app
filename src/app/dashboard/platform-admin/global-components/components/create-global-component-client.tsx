@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const initialConfigurablePropertiesJson = `{
   "text": { "type": "string", "label": "Button Text", "defaultValue": "Click Me", "group": "Content" }
 }`;
-const initialTemplateString = `<button>{{props.text}}</button>`; // Updated placeholder to use props.text
+const initialTemplateString = `<button>{{props.text}}</button>`;
 
 interface CreateGlobalComponentFormProps {
   isOpen: boolean;
@@ -78,8 +78,8 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
 
   useEffect(() => {
     if (selectedTemplateId === 'custom') {
-      // Rely on parent's resetForm for full initial blank state when dialog opens
-      // This part specifically ensures textareas are reset if 'custom' is re-selected
+       // This part specifically ensures textareas are reset if 'custom' is re-selected,
+       // relying on parent's resetForm for initial blank state when dialog opens.
        setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
        setTemplate(initialTemplateString);
     } else {
@@ -101,14 +101,10 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
       }
     }
   }, [selectedTemplateId, setComponentId, setDisplayName, setComponentType, setDescription, setIconUrl, setTagsString, setConfigurablePropertiesJson, setTemplate]);
-
-  if (!isOpen) {
-    return null;
-  }
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] grid grid-rows-[auto_1fr_auto] p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>Create Global Component</DialogTitle>
           <DialogDescription>
@@ -116,7 +112,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 overflow-y-auto">
+        <ScrollArea className="overflow-y-auto"> {/* No flex-1 needed, grid row 1fr handles expansion */}
           <form onSubmit={handleSubmit} className="space-y-4 p-6">
             <div>
               <Label htmlFor="templateSelect">Load Template</Label>
@@ -204,7 +200,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
           </form>
         </ScrollArea>
 
-        <DialogFooter className="p-6 pt-4 border-t sticky bottom-0 bg-background z-10">
+        <DialogFooter className="p-6 pt-4 border-t bg-background"> {/* Removed sticky, z-index. Grid handles positioning. */}
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isSaving}>
               Cancel
