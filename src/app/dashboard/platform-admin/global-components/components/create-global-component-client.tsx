@@ -33,7 +33,6 @@ interface CreateGlobalComponentFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   
-  // Form state and setters are passed down
   componentId: string;
   setComponentId: (value: string) => void;
   displayName: string;
@@ -44,6 +43,8 @@ interface CreateGlobalComponentFormProps {
   setDescription: (value: string) => void;
   iconUrl: string;
   setIconUrl: (value: string) => void;
+  tagsString: string; // For comma-separated tags input
+  setTagsString: (value: string) => void;
   configurablePropertiesJson: string;
   setConfigurablePropertiesJson: (value: string) => void;
   template: string;
@@ -61,6 +62,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
   componentType, setComponentType,
   description, setDescription,
   iconUrl, setIconUrl,
+  tagsString, setTagsString,
   configurablePropertiesJson, setConfigurablePropertiesJson,
   template, setTemplate,
   isSaving,
@@ -68,32 +70,20 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
 }) => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('custom');
 
-  const resetToCustomDefaults = () => {
-    setComponentId('');
-    setDisplayName('');
-    setComponentType('');
-    setDescription('');
-    setIconUrl('');
-    setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
-    setTemplate(initialTemplateString);
-  };
-
   useEffect(() => {
     if (!isOpen) {
-        setSelectedTemplateId('custom'); // Reset template selection when dialog closes
-        // Parent's resetForm will handle clearing fields
+        setSelectedTemplateId('custom'); 
     }
   }, [isOpen]);
 
-
   useEffect(() => {
     if (selectedTemplateId === 'custom') {
-      // Do not reset fields here if they are already being managed by parent's resetForm.
-      // Only ensure the defaults for JSON and template string are applied if "custom" is selected.
-      // This could be refined if the parent `resetForm` is also called when dialog opens.
-      // For now, assume parent's `resetForm` sets to blank, and here we ensure JSON/template defaults.
-      // Or, if we want templates to take precedence:
-      // resetToCustomDefaults(); // This would clear the form if user switches back to custom.
+      // Parent's resetForm handles initial blank state.
+      // This effect only ensures JSON/template defaults if user re-selects "custom"
+      // after choosing another template.
+      // For a more robust reset on "custom" selection, call parent's resetForm or parts of it.
+      setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
+      setTemplate(initialTemplateString);
     } else {
       const selected = componentTemplates.find(t => t.templateId === selectedTemplateId);
       if (selected) {
@@ -102,6 +92,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
         setComponentType(selected.type || '');
         setDescription(selected.description || '');
         setIconUrl(selected.iconUrl || '');
+        setTagsString((selected.tags || []).join(', '));
         try {
           setConfigurablePropertiesJson(JSON.stringify(selected.configurablePropertiesSchema, null, 2) || initialConfigurablePropertiesJson);
         } catch (e) {
@@ -111,8 +102,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
         setTemplate(selected.templateString || initialTemplateString);
       }
     }
-  }, [selectedTemplateId, setComponentId, setDisplayName, setComponentType, setDescription, setIconUrl, setConfigurablePropertiesJson, setTemplate]);
-
+  }, [selectedTemplateId, setComponentId, setDisplayName, setComponentType, setDescription, setIconUrl, setTagsString, setConfigurablePropertiesJson, setTemplate]);
 
   if (!isOpen) {
     return null;
@@ -120,20 +110,20 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>Create Global Component</DialogTitle>
           <DialogDescription>
             Define a new reusable UI component. Select a template or start from scratch.
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 pr-2 py-2 -mr-2"> {/* Added ScrollArea */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-4 p-6">
             <div>
               <Label htmlFor="templateSelect">Load Template</Label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId} disabled={isSaving}>
-                <SelectTrigger id="templateSelect">
+                <SelectTrigger id="templateSelect" className="mt-1">
                   <SelectValue placeholder="Select a template..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,38 +140,40 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="componentId">Component ID (Unique)</Label>
-                <Input id="componentId" value={componentId} onChange={(e) => setComponentId(e.target.value)} placeholder="e.g., custom-button-v1" required disabled={isSaving} />
+                <Input id="componentId" value={componentId} onChange={(e) => setComponentId(e.target.value)} placeholder="e.g., custom-button-v1" required disabled={isSaving} className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="displayName">Display Name</Label>
-                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g., Custom Button" required disabled={isSaving} />
+                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g., Custom Button" required disabled={isSaving} className="mt-1" />
               </div>
             </div>
             
             <div>
               <Label htmlFor="componentType">Component Type (Renderer Key)</Label>
-              <Input id="componentType" value={componentType} onChange={(e) => setComponentType(e.target.value)} placeholder="e.g., Button, DataTable" required disabled={isSaving} />
+              <Input id="componentType" value={componentType} onChange={(e) => setComponentType(e.target.value)} placeholder="e.g., Button, DataTable" required disabled={isSaving} className="mt-1" />
               <p className="text-xs text-muted-foreground mt-1">This key links to the actual rendering React component in the system.</p>
             </div>
 
             <div>
               <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Briefly describe what this component does." rows={2} disabled={isSaving} />
+              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Briefly describe what this component does." rows={2} disabled={isSaving} className="mt-1" />
             </div>
-            <div>
-              <Label htmlFor="iconUrl">Icon URL (Optional)</Label>
-              <Input id="iconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://example.com/icon.png or data:image/svg+xml;..." disabled={isSaving} />
-            </div>
-             <div>
-              <Label htmlFor="tags">Tags (Optional, Comma-separated)</Label>
-              <Input 
-                id="tags" 
-                // Assuming tags are handled as a string in the parent for now, or not implemented yet
-                // value={tagsString} 
-                // onChange={(e) => setTagsString(e.target.value)} 
-                placeholder="e.g., input, display, material" 
-                disabled={isSaving} 
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="iconUrl">Icon URL (Optional)</Label>
+                <Input id="iconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://example.com/icon.png" disabled={isSaving} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="tags">Tags (Optional, Comma-separated)</Label>
+                <Input 
+                  id="tags"
+                  value={tagsString} 
+                  onChange={(e) => setTagsString(e.target.value)} 
+                  placeholder="e.g., input, display, material" 
+                  disabled={isSaving} 
+                  className="mt-1"
+                />
+              </div>
             </div>
 
             <div>
@@ -190,8 +182,8 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
                 id="configurablePropertiesJson"
                 value={configurablePropertiesJson}
                 onChange={(e) => setConfigurablePropertiesJson(e.target.value)}
-                rows={10}
-                className="font-mono text-xs"
+                rows={8}
+                className="font-mono text-xs mt-1"
                 placeholder={initialConfigurablePropertiesJson}
                 disabled={isSaving}
               />
@@ -204,8 +196,8 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
                 id="template"
                 value={template}
                 onChange={(e) => setTemplate(e.target.value)}
-                rows={6}
-                className="font-mono text-xs"
+                rows={5}
+                className="font-mono text-xs mt-1"
                 placeholder={initialTemplateString}
                 disabled={isSaving}
               />
@@ -214,7 +206,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
           </form>
         </ScrollArea>
 
-        <DialogFooter className="sticky bottom-0 bg-background py-4 mt-auto border-t">
+        <DialogFooter className="p-6 pt-4 border-t sticky bottom-0 bg-background">
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isSaving}>
               Cancel
@@ -236,17 +228,16 @@ export default function CreateGlobalComponentClient() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // States for the form fields, managed by the parent
   const [componentId, setComponentId] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [componentType, setComponentType] = useState('');
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
+  const [tagsString, setTagsString] = useState(''); 
   const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState(
     initialConfigurablePropertiesJson
   );
   const [template, setTemplate] = useState(initialTemplateString);
-  const [tags, setTags] = useState<string[]>([]); // Added tags state
 
   const resetForm = (isOpening = false) => {
     setComponentId('');
@@ -254,9 +245,7 @@ export default function CreateGlobalComponentClient() {
     setComponentType('');
     setDescription('');
     setIconUrl('');
-    setTags([]);
-    // Only reset these to initial defaults if explicitly opening or custom template selected
-    // Otherwise, they might hold values from a loaded template
+    setTagsString('');
     if(isOpening) {
       setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
       setTemplate(initialTemplateString);
@@ -265,11 +254,10 @@ export default function CreateGlobalComponentClient() {
 
   const handleOpenChangeWrapper = (open: boolean) => {
     if (open) {
-      resetForm(true); // Reset form when dialog opens, ensuring template dropdown starts fresh
+      resetForm(true); 
     }
     setIsOpen(open);
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,18 +288,18 @@ export default function CreateGlobalComponentClient() {
 
     setIsSaving(true);
 
-    const newComponentDef: Partial<GlobalComponentDefinition> = { // Use Partial for easier construction
+    const currentTags = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+
+    const newComponentDef: GlobalComponentDefinition = { 
       id: componentId.trim(),
       displayName: displayName.trim(),
       type: componentType.trim(),
       description: description.trim() || undefined,
       iconUrl: iconUrl.trim() || undefined,
-      // The schema should be stored as an object in Firestore if possible.
-      // If your model expects a string, then keep configurablePropertiesJson.
-      // For now, assuming model expects object.
       configurablePropertiesSchema: parsedConfigurableProperties, 
       template: template.trim() || undefined,
-      tags: tags.length > 0 ? tags : undefined,
+      tags: currentTags.length > 0 ? currentTags : undefined,
+      // createdAt and lastModified will be set by serverTimestamp
     };
 
     try {
@@ -326,8 +314,7 @@ export default function CreateGlobalComponentClient() {
         title: 'Global Component Created',
         description: `Component "${newComponentDef.displayName}" has been saved.`,
       });
-      handleOpenChangeWrapper(false); // Close dialog
-      // resetForm() is called by handleOpenChangeWrapper via useEffect in form if it just closes
+      handleOpenChangeWrapper(false); 
     } catch (error) {
       console.error('Error creating global component:', error);
       toast({
@@ -356,6 +343,7 @@ export default function CreateGlobalComponentClient() {
         componentType={componentType} setComponentType={setComponentType}
         description={description} setDescription={setDescription}
         iconUrl={iconUrl} setIconUrl={setIconUrl}
+        tagsString={tagsString} setTagsString={setTagsString}
         configurablePropertiesJson={configurablePropertiesJson} setConfigurablePropertiesJson={setConfigurablePropertiesJson}
         template={template} setTemplate={setTemplate}
       />
