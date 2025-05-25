@@ -9,41 +9,77 @@ import HeadingTextComponent from './renderable-components/HeadingTextComponent';
 import SimpleButtonComponent from './renderable-components/SimpleButtonComponent';
 
 // Import Shadcn renderers
-import ShadcnBadgeRenderer from './renderable-components/ShadcnBadgeRenderer';
 import ShadcnAccordionRenderer from './renderable-components/ShadcnAccordionRenderer';
+import ShadcnAlertDialogRenderer from './renderable-components/ShadcnAlertDialogRenderer';
+import ShadcnAlertRenderer from './renderable-components/ShadcnAlertRenderer';
+import ShadcnAvatarRenderer from './renderable-components/ShadcnAvatarRenderer';
+import ShadcnBadgeRenderer from './renderable-components/ShadcnBadgeRenderer';
 import ShadcnButtonRenderer from './renderable-components/ShadcnButtonRenderer';
+import ShadcnCalendarRenderer from './renderable-components/ShadcnCalendarRenderer';
+import ShadcnCardRenderer from './renderable-components/ShadcnCardRenderer';
+import ShadcnCheckboxRenderer from './renderable-components/ShadcnCheckboxRenderer';
+import ShadcnDialogRenderer from './renderable-components/ShadcnDialogRenderer';
+import ShadcnDropdownMenuRenderer from './renderable-components/ShadcnDropdownMenuRenderer';
+import ShadcnInputRenderer from './renderable-components/ShadcnInputRenderer';
+import ShadcnLabelRenderer from './renderable-components/ShadcnLabelRenderer';
+import ShadcnMenubarRenderer from './renderable-components/ShadcnMenubarRenderer';
+import ShadcnPopoverRenderer from './renderable-components/ShadcnPopoverRenderer';
+import ShadcnProgressRenderer from './renderable-components/ShadcnProgressRenderer';
+import ShadcnRadioGroupRenderer from './renderable-components/ShadcnRadioGroupRenderer';
+import ShadcnScrollAreaRenderer from './renderable-components/ShadcnScrollAreaRenderer';
+import ShadcnSelectRenderer from './renderable-components/ShadcnSelectRenderer';
+import ShadcnSeparatorRenderer from './renderable-components/ShadcnSeparatorRenderer';
+import ShadcnSheetRenderer from './renderable-components/ShadcnSheetRenderer';
+import ShadcnSkeletonRenderer from './renderable-components/ShadcnSkeletonRenderer';
+import ShadcnSliderRenderer from './renderable-components/ShadcnSliderRenderer';
+import ShadcnSwitchRenderer from './renderable-components/ShadcnSwitchRenderer';
+import ShadcnTableRenderer from './renderable-components/ShadcnTableRenderer';
+import ShadcnTabsRenderer from './renderable-components/ShadcnTabsRenderer';
+import ShadcnTextareaRenderer from './renderable-components/ShadcnTextareaRenderer';
+import ShadcnTooltipRenderer from './renderable-components/ShadcnTooltipRenderer';
 
 
 export interface RenderableComponentProps {
   instance: PlatformComponentInstance;
-  // Definition is optional because in a live renderer, we might only pass instance data
-  // and the component fetches its own definition if needed, or relies purely on instance.type and instance.configuredValues.
-  // For a builder UI, providing the full definition is more common.
   definition?: GlobalComponentDefinition;
 }
 
-// The registry maps a component type string (from PlatformComponentInstance.type or GlobalComponentDefinition.type)
-// to the actual React component that can render it.
 export const componentRegistry: Record<string, ComponentType<RenderableComponentProps>> = {
   Placeholder: PlaceholderComponent,
   HeadingText: HeadingTextComponent,
   SimpleButton: SimpleButtonComponent,
   
   // Shadcn Components
-  ShadcnBadge: ShadcnBadgeRenderer,
   ShadcnAccordion: ShadcnAccordionRenderer,
+  ShadcnAlertDialog: ShadcnAlertDialogRenderer,
+  ShadcnAlert: ShadcnAlertRenderer,
+  ShadcnAvatar: ShadcnAvatarRenderer,
+  ShadcnBadge: ShadcnBadgeRenderer,
   ShadcnButton: ShadcnButtonRenderer,
-  // Add more Shadcn component types and their renderers here as you create them
-  // e.g., 'ShadcnAlert': ShadcnAlertRenderer,
-  //       'ShadcnCard': ShadcnCardRenderer,
+  ShadcnCalendar: ShadcnCalendarRenderer,
+  ShadcnCard: ShadcnCardRenderer,
+  ShadcnCheckbox: ShadcnCheckboxRenderer,
+  ShadcnDialog: ShadcnDialogRenderer,
+  ShadcnDropdownMenu: ShadcnDropdownMenuRenderer,
+  ShadcnInput: ShadcnInputRenderer,
+  ShadcnLabel: ShadcnLabelRenderer,
+  ShadcnMenubar: ShadcnMenubarRenderer,
+  ShadcnPopover: ShadcnPopoverRenderer,
+  ShadcnProgress: ShadcnProgressRenderer,
+  ShadcnRadioGroup: ShadcnRadioGroupRenderer,
+  ShadcnScrollArea: ShadcnScrollAreaRenderer,
+  ShadcnSelect: ShadcnSelectRenderer,
+  ShadcnSeparator: ShadcnSeparatorRenderer,
+  ShadcnSheet: ShadcnSheetRenderer,
+  ShadcnSkeleton: ShadcnSkeletonRenderer,
+  ShadcnSlider: ShadcnSliderRenderer,
+  ShadcnSwitch: ShadcnSwitchRenderer,
+  ShadcnTable: ShadcnTableRenderer,
+  ShadcnTabs: ShadcnTabsRenderer,
+  ShadcnTextarea: ShadcnTextareaRenderer,
+  ShadcnTooltip: ShadcnTooltipRenderer,
 };
 
-/**
- * Retrieves a component from the registry.
- * Falls back to PlaceholderComponent if the type is not found.
- * @param type The component type string.
- * @returns The React component.
- */
 export function getRenderableComponent(type: string): ComponentType<RenderableComponentProps> {
   const component = componentRegistry[type];
   if (!component) {
