@@ -157,7 +157,7 @@ export default function LoginPage() {
                 <div>
                   <Label htmlFor="reset-email">Email address</Label>
                   <Input
-                    id="reset-email"
+                    id="reset-email-input"
                     data-testid="reset-email-input"
                     name="reset-email"
                     type="email"
@@ -171,7 +171,14 @@ export default function LoginPage() {
                   />
                 </div>
                 <div>
-                  <Button data-testid="send-reset-link-button" type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  <Button 
+                    id="send-reset-link-button"
+                    data-testid="send-reset-link-button" 
+                    type="submit" 
+                    className="w-full" 
+                    size="lg" 
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -181,7 +188,13 @@ export default function LoginPage() {
                 </div>
                  <p className="mt-8 text-center text-sm text-muted-foreground">
                   Remembered your password?{" "}
-                  <Button data-testid="back-to-signin-button" variant="link" onClick={() => { setShowPasswordReset(false); setError(null); }} className="font-medium text-primary hover:text-primary/90 p-0 h-auto">
+                  <Button 
+                    id="back-to-signin-button-from-reset"
+                    data-testid="back-to-signin-button" 
+                    variant="link" 
+                    onClick={() => { setShowPasswordReset(false); setError(null); }} 
+                    className="font-medium text-primary hover:text-primary/90 p-0 h-auto"
+                  >
                     Back to Sign In
                   </Button>
                 </p>
@@ -191,7 +204,7 @@ export default function LoginPage() {
                 <div>
                   <Label htmlFor="email">Email address</Label>
                   <Input
-                    id="email"
+                    id="email-input"
                     data-testid="email-input"
                     name="email"
                     type="email"
@@ -211,6 +224,7 @@ export default function LoginPage() {
                     {!isSignUp && (
                       <div className="text-sm">
                         <Button 
+                          id="forgot-password-button"
                           data-testid="forgot-password-button"
                           type="button" 
                           variant="link" 
@@ -223,7 +237,7 @@ export default function LoginPage() {
                     )}
                   </div>
                   <Input
-                    id="password"
+                    id="password-input"
                     data-testid="password-input"
                     name="password"
                     type="password"
@@ -238,7 +252,14 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <Button data-testid="auth-action-button" type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  <Button 
+                    id="auth-action-button"
+                    data-testid="auth-action-button" 
+                    type="submit" 
+                    className="w-full" 
+                    size="lg" 
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -253,6 +274,7 @@ export default function LoginPage() {
               <p className="mt-8 text-center text-sm text-muted-foreground">
                 {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
                 <Button 
+                  id="toggle-signup-signin-button"
                   data-testid="toggle-signup-signin-button"
                   variant="link" 
                   onClick={() => { setIsSignUp(!isSignUp); setError(null); }} 
