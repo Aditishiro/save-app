@@ -353,21 +353,22 @@ export default function EditFormPage() {
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0"> 
         {!isPreviewMode && (
-          <div className="md:col-span-3 min-h-0 flex flex-col">
-            <FieldPalette onAddField={handleAddField} />
+          <div className="md:col-span-3 flex flex-col min-h-0">
+            <FieldPalette onAddField={handleAddField} isSaving={isSaving}/>
           </div>
         )}
 
-        <div className={isPreviewMode ? "md:col-span-12 min-h-0 flex flex-col" : "md:col-span-6 min-h-0 flex flex-col"}>
+        <div className={isPreviewMode ? "md:col-span-12 flex flex-col min-h-0" : "md:col-span-6 flex flex-col min-h-0"}>
           <FormCanvas fields={renderedFields} onSelectField={handleSelectField} />
         </div>
 
         {!isPreviewMode && (
-          <div className="md:col-span-3 min-h-0 flex flex-col">
+          <div className="md:col-span-3 flex flex-col min-h-0">
             <PropertiesPanel
               selectedField={selectedFieldConfig}
               onUpdateField={handleUpdateField}
               onDeleteField={handleDeleteField}
+              isSaving={isSaving}
             />
           </div>
         )}

@@ -162,7 +162,7 @@ export default function EditPlatformPage() {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [platformId, currentUser, router, toast]); // Removed isLoading from here
+  }, [platformId, currentUser, router, toast]);
 
   // Fetch Global Component Definitions
   useEffect(() => {
@@ -183,19 +183,12 @@ export default function EditPlatformPage() {
     if (!platform?.defaultLayoutId) {
       setComponentInstances([]);
       setCurrentLayout(null);
-      // If platform is loaded but has no defaultLayoutId, it means one might be in the process of being created
-      // or there's a data issue. setIsLoading(false) should be handled carefully.
-      // If platform is loaded, and we know defaultLayoutId is definitely null/undefined and not pending creation,
-      // then it's safe to stop loading.
       if (platform && platform.hasOwnProperty('defaultLayoutId') && !platform.defaultLayoutId) {
         setIsLoading(false);
       }
       return;
     }
     
-    // Indicate loading for layout and instances if platform data is present
-    // This prevents setting isLoading to false too early if the platform fetch was quick
-    // but layout/instances are still pending.
     if(!currentLayout && componentInstances.length === 0) setIsLoading(true);
 
 
@@ -211,14 +204,14 @@ export default function EditPlatformPage() {
         const unsubscribeInstances = onSnapshot(qInstances, (snapshot) => {
           const fetchedInstances = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlatformComponentInstance));
           setComponentInstances(fetchedInstances);
-          setIsLoading(false); // All critical data for this effect is loaded
+          setIsLoading(false); 
         }, (err) => {
           console.error("Error fetching component instances:", err);
           toast({ title: "Error", description: "Could not load component instances.", variant: "destructive"});
           setComponentInstances([]);
           setIsLoading(false);
         });
-        return () => unsubscribeInstances(); // Cleanup instances listener
+        return () => unsubscribeInstances(); 
       } else {
         console.warn(`Default layout ${platform.defaultLayoutId} not found.`);
         toast({ title: "Layout Error", description: `Layout ${platform.defaultLayoutId} not found.`, variant: "destructive"});
@@ -233,8 +226,8 @@ export default function EditPlatformPage() {
       setComponentInstances([]);
       setIsLoading(false);
     });
-    return () => unsubscribeLayout(); // Cleanup layout listener
-  }, [platformId, platform?.defaultLayoutId, toast]); // Removed platform and isLoading from here, rely on defaultLayoutId as key trigger
+    return () => unsubscribeLayout(); 
+  }, [platformId, platform?.defaultLayoutId, toast]); 
 
 
   const handleSaveChanges = async () => {
@@ -410,7 +403,7 @@ export default function EditPlatformPage() {
               <Button onClick={handleSaveChanges} disabled={isSaving} size="sm">
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Details
               </Button>
-               <Button size="sm" variant="secondary" asChild>
+               <Button data-testid="platform-builder-live-preview-button" size="sm" variant="secondary" asChild>
                 <Link href={`/platforms/${platformId}`} target="_blank">
                   <LayoutDashboard className="mr-2 h-4 w-4" /> Live Preview
                 </Link>
@@ -437,7 +430,7 @@ export default function EditPlatformPage() {
               </CardContent>
             </Card>
             <Card className="flex-1 flex flex-col min-h-0"> 
-              <CardHeader className="flex-shrink-0">
+              <CardHeader className="shrink-0"> {/* Changed flex-shrink-0 */}
                 <CardTitle className="text-base flex items-center gap-1">
                   <PaletteIcon className="h-4 w-4 text-primary" /> Component Palette
                 </CardTitle>
@@ -452,7 +445,7 @@ export default function EditPlatformPage() {
                       size="sm"
                       className="w-full justify-start text-xs h-8"
                       onClick={() => handleAddComponentToCanvas(comp)}
-                      disabled={isSaving || isLoading} // Disable if overall page is loading too
+                      disabled={isSaving || isLoading} 
                     >
                       {comp.iconUrl ? <img src={comp.iconUrl} alt="" className="h-3 w-3 mr-2" data-ai-hint="component icon" /> : <LayoutDashboard className="h-3 w-3 mr-2"/>}
                       {comp.displayName}
@@ -465,7 +458,7 @@ export default function EditPlatformPage() {
 
           <div className="md:col-span-6 flex flex-col min-h-0"> 
             <Card className="flex-1 flex flex-col border-2 border-dashed min-h-0">
-              <CardHeader className="flex-shrink-0">
+              <CardHeader className="shrink-0"> {/* Changed flex-shrink-0 */}
                   <CardTitle className="text-base">Canvas ({currentLayout?.name || 'No Layout'})</CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1 bg-muted/20 p-4 rounded-b-md">
@@ -491,7 +484,7 @@ export default function EditPlatformPage() {
 
           <div className="md:col-span-3 flex flex-col min-h-0"> 
             <Card className="flex-1 flex flex-col min-h-0">
-              <CardHeader className="flex-shrink-0">
+              <CardHeader className="shrink-0"> {/* Changed flex-shrink-0 */}
                 <CardTitle className="text-base flex items-center gap-1">
                   <Settings2 className="h-4 w-4 text-primary" /> Component Properties
                 </CardTitle>
@@ -501,8 +494,7 @@ export default function EditPlatformPage() {
                 <CardContent className="space-y-3 py-2"> 
                   {!selectedInstanceId && <p className="text-xs text-muted-foreground text-center py-4">Select a component on the canvas.</p>}
                   {selectedComponentInstance && selectedComponentDefinition && (
-                    Object.entries(selectedComponentDefinition.configurablePropertiesSchema || {}).map(([propKey, propSchema]: [string, any]) => { // Using 'any' for propSchema temporarily for robustness
-                      // Added guard for propSchema and propSchema.type
+                    Object.entries(selectedComponentDefinition.configurablePropertiesSchema || {}).map(([propKey, propSchema]: [string, any]) => { 
                       if (!propSchema || typeof propSchema !== 'object' || !propSchema.type || typeof propSchema.type !== 'string') {
                         return (
                           <div key={propKey} className="text-xs text-destructive p-2 border border-destructive/50 rounded-md">
@@ -511,7 +503,7 @@ export default function EditPlatformPage() {
                           </div>
                         );
                       }
-                      const currentPropSchema = propSchema as ConfigurablePropertySchema; // Cast after validation
+                      const currentPropSchema = propSchema as ConfigurablePropertySchema; 
 
                       return (
                         <div key={propKey} className="space-y-1">
@@ -597,5 +589,3 @@ export default function EditPlatformPage() {
     </DndContext>
   );
 }
-
-    
