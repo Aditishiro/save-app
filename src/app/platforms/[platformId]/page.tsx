@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PlatformPageProps): Promise<M
       const platformData = platformSnap.data() as PlatformData;
       if (platformData.status === 'published') {
         return {
-          title: `${platformData.name} | FormFlow Platform`,
+          title: `${platformData.name} | PlatformCraft Platform`,
           description: platformData.description || `View the ${platformData.name} platform.`,
         };
       }
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PlatformPageProps): Promise<M
   // Default or fallback metadata if platform not found or not published
   return {
     title: 'Platform Viewer',
-    description: 'View a dynamically rendered platform.',
+    description: 'View a dynamically rendered platform built with PlatformCraft.',
   };
 }
 
@@ -54,5 +54,3 @@ export default function PlatformPage({ params }: PlatformPageProps) {
     </div>
   );
 }
-
-    

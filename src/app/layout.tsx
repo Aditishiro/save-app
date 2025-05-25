@@ -11,8 +11,8 @@ const inter = Inter({ // Instantiate Inter
 });
 
 export const metadata: Metadata = {
-  title: 'FormFlow Finance',
-  description: 'No-code form builder for banking and finance professionals.',
+  title: 'PlatformCraft',
+  description: 'Visually design and build powerful custom platforms and applications.',
 };
 
 export default function RootLayout({

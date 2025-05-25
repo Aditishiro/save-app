@@ -25,7 +25,7 @@ export default function SettingsPage() {
   // Branding State
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoFileName, setLogoFileName] = useState<string>('');
-  const [themeColor, setThemeColor] = useState<string>("#60A5FA"); // Default to current primary
+  const [themeColor, setThemeColor] = useState<string>("#1976D2"); // Default to Material Blue 500
 
   // Submission Rules State
   const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState<boolean>(true);
@@ -100,7 +100,7 @@ export default function SettingsPage() {
     setUserAccessList(prev => prev.filter(user => user.id !== userId));
     toast({ title: "User Removed", description: "The user access has been revoked." });
   };
-  
+
   const handleSaveAccessSettings = () => {
     toast({
       title: "Access Settings Saved",
@@ -113,8 +113,8 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader
-        title="Application Settings"
-        description="Configure branding, submission rules, data export options, and user access."
+        title="PlatformCraft Settings"
+        description="Configure branding, submission rules, data export options, and user access for your platform."
       />
       <Tabs defaultValue="branding" className="w-full">
         <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-6">
@@ -128,7 +128,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Branding Settings</CardTitle>
-              <CardDescription>Customize the look and feel of your forms.</CardDescription>
+              <CardDescription>Customize the look and feel of PlatformCraft and generated platforms.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -153,7 +153,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Submission Rules</CardTitle>
-              <CardDescription>Define rules for form submissions.</CardDescription>
+              <CardDescription>Define rules for form submissions within generated platforms.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between rounded-lg border p-4">
@@ -185,7 +185,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="export">
           <Card>
             <CardHeader>
@@ -222,18 +222,18 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Access Control</CardTitle>
-              <CardDescription>Manage user roles and permissions for the application (mock implementation).</CardDescription>
+              <CardDescription>Manage user roles and permissions for PlatformCraft (mock implementation).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2 p-4 border rounded-lg">
                 <h4 className="font-medium mb-2">Add New User</h4>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Input 
-                    type="email" 
-                    placeholder="user@example.com" 
-                    className="flex-grow" 
-                    value={newUserEmail} 
-                    onChange={(e) => setNewUserEmail(e.target.value)} 
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    className="flex-grow"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
                   />
                   <Select value={newUserRole} onValueChange={(value) => setNewUserRole(value as 'viewer' | 'editor' | 'publisher')}>
                     <SelectTrigger className="w-full sm:w-[180px]">

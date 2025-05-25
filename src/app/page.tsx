@@ -39,7 +39,7 @@ export default function LoginPage() {
           title: "Account Created",
           description: "Verification email sent. Please check your inbox (optional for login).",
         });
-        setIsSignUp(false); 
+        setIsSignUp(false);
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         // Removed the emailVerified check to allow sign-in without verification
@@ -96,8 +96,8 @@ export default function LoginPage() {
         title: "Password Reset Email Sent",
         description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
       });
-      setShowPasswordReset(false); 
-      setResetEmail(''); 
+      setShowPasswordReset(false);
+      setResetEmail('');
     } catch (resetError: any) {
       console.error("Password Reset Error:", resetError);
       let friendlyMessage = "Could not send password reset email. Please try again.";
@@ -109,7 +109,7 @@ export default function LoginPage() {
           title: "Password Reset Email Sent",
           description: "If an account exists for this email, a password reset link has been sent. Please check your inbox.",
         });
-        setShowPasswordReset(false); 
+        setShowPasswordReset(false);
         setResetEmail('');
       } else {
          setError(friendlyMessage);
@@ -125,10 +125,10 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2 text-primary mb-2">
             <Briefcase className="h-8 w-8 sm:h-10 sm:w-10" />
-            <span className="text-2xl sm:text-3xl font-bold">FormFlow</span>
+            <span className="text-2xl sm:text-3xl font-bold">PlatformCraft</span>
           </Link>
           <p className="text-sm text-muted-foreground text-center max-w-xs">
-            Streamline Your Data Collection. Effortlessly create, manage, and publish financial forms.
+            Visually design and build powerful custom platforms and applications.
           </p>
         </div>
 
@@ -138,9 +138,9 @@ export default function LoginPage() {
               {showPasswordReset ? "Reset Password" : (isSignUp ? "Create an Account" : "Welcome Back")}
             </CardTitle>
             <CardDescription>
-              {showPasswordReset 
-                ? "Enter your email address and we'll send you a link to reset your password." 
-                : (isSignUp ? "Sign up to start using FormFlow." : "Log in to your FormFlow account to continue.")
+              {showPasswordReset
+                ? "Enter your email address and we'll send you a link to reset your password."
+                : (isSignUp ? "Sign up to start using PlatformCraft." : "Log in to your PlatformCraft account to continue.")
               }
             </CardDescription>
           </CardHeader>
@@ -171,12 +171,12 @@ export default function LoginPage() {
                   />
                 </div>
                 <div>
-                  <Button 
+                  <Button
                     id="send-reset-link-button"
-                    data-testid="send-reset-link-button" 
-                    type="submit" 
-                    className="w-full" 
-                    size="lg" 
+                    data-testid="send-reset-link-button"
+                    type="submit"
+                    className="w-full"
+                    size="lg"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -188,11 +188,11 @@ export default function LoginPage() {
                 </div>
                  <p className="mt-8 text-center text-sm text-muted-foreground">
                   Remembered your password?{" "}
-                  <Button 
+                  <Button
                     id="back-to-signin-button-from-reset"
-                    data-testid="back-to-signin-button" 
-                    variant="link" 
-                    onClick={() => { setShowPasswordReset(false); setError(null); }} 
+                    data-testid="back-to-signin-button"
+                    variant="link"
+                    onClick={() => { setShowPasswordReset(false); setError(null); }}
                     className="font-medium text-primary hover:text-primary/90 p-0 h-auto"
                   >
                     Back to Sign In
@@ -223,12 +223,12 @@ export default function LoginPage() {
                     <Label htmlFor="password">Password</Label>
                     {!isSignUp && (
                       <div className="text-sm">
-                        <Button 
+                        <Button
                           id="forgot-password-button"
                           data-testid="forgot-password-button"
-                          type="button" 
-                          variant="link" 
-                          onClick={() => { setShowPasswordReset(true); setError(null); }} 
+                          type="button"
+                          variant="link"
+                          onClick={() => { setShowPasswordReset(true); setError(null); }}
                           className="font-medium text-primary hover:text-primary/90 p-0 h-auto text-xs sm:text-sm"
                         >
                           Forgot password?
@@ -252,12 +252,12 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <Button 
+                  <Button
                     id="auth-action-button"
-                    data-testid="auth-action-button" 
-                    type="submit" 
-                    className="w-full" 
-                    size="lg" 
+                    data-testid="auth-action-button"
+                    type="submit"
+                    className="w-full"
+                    size="lg"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -273,11 +273,11 @@ export default function LoginPage() {
             {!showPasswordReset && (
               <p className="mt-8 text-center text-sm text-muted-foreground">
                 {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-                <Button 
+                <Button
                   id="toggle-signup-signin-button"
                   data-testid="toggle-signup-signin-button"
-                  variant="link" 
-                  onClick={() => { setIsSignUp(!isSignUp); setError(null); }} 
+                  variant="link"
+                  onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
                   className="font-medium text-primary hover:text-primary/90 p-0 h-auto"
                 >
                   {isSignUp ? "Sign In" : "Sign Up"}
@@ -288,7 +288,7 @@ export default function LoginPage() {
         </Card>
       </div>
       <footer className="mt-12 text-center text-xs text-muted-foreground/80">
-        <p>&copy; {new Date().getFullYear()} FormFlow. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} PlatformCraft. All rights reserved.</p>
       </footer>
     </div>
   );

@@ -1,12 +1,13 @@
+
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Share2, Zap, Database } from 'lucide-react';
 
 const mockIntegrations = [
-  { name: 'Salesforce', description: 'Sync form submissions with Salesforce CRM.', logo: 'https://picsum.photos/seed/salesforce/40/40', status: 'Connected', dataAiHint: 'salesforce logo' },
-  { name: 'Google Sheets', description: 'Automatically export data to Google Sheets.', logo: 'https://picsum.photos/seed/gsheets/40/40', status: 'Not Connected', dataAiHint: 'sheets logo' },
-  { name: 'Zapier', description: 'Connect to thousands of apps via Zapier.', logo: 'https://picsum.photos/seed/zapier/40/40', status: 'Not Connected', dataAiHint: 'zapier logo' },
+  { name: 'Salesforce', description: 'Sync form submissions with Salesforce CRM.', logo: 'https://placehold.co/40x40.png', status: 'Connected', dataAiHint: 'salesforce logo' },
+  { name: 'Google Sheets', description: 'Automatically export data to Google Sheets.', logo: 'https://placehold.co/40x40.png', status: 'Not Connected', dataAiHint: 'sheets logo' },
+  { name: 'Zapier', description: 'Connect to thousands of apps via Zapier.', logo: 'https://placehold.co/40x40.png', status: 'Not Connected', dataAiHint: 'zapier logo' },
 ];
 
 
@@ -15,7 +16,7 @@ export default function IntegrationsPage() {
     <>
       <PageHeader
         title="Integrations"
-        description="Connect FormFlow Finance with your favorite tools and services."
+        description="Connect PlatformCraft with your favorite tools and services."
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {mockIntegrations.map((integration) => (
