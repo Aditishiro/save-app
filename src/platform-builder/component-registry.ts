@@ -8,6 +8,12 @@ import PlaceholderComponent from './renderable-components/PlaceholderComponent';
 import HeadingTextComponent from './renderable-components/HeadingTextComponent';
 import SimpleButtonComponent from './renderable-components/SimpleButtonComponent';
 
+// Import Shadcn renderers
+import ShadcnBadgeRenderer from './renderable-components/ShadcnBadgeRenderer';
+import ShadcnAccordionRenderer from './renderable-components/ShadcnAccordionRenderer';
+import ShadcnButtonRenderer from './renderable-components/ShadcnButtonRenderer';
+
+
 export interface RenderableComponentProps {
   instance: PlatformComponentInstance;
   // Definition is optional because in a live renderer, we might only pass instance data
@@ -22,9 +28,14 @@ export const componentRegistry: Record<string, ComponentType<RenderableComponent
   Placeholder: PlaceholderComponent,
   HeadingText: HeadingTextComponent,
   SimpleButton: SimpleButtonComponent,
-  // Add more component types and their corresponding renderable React components here
-  // e.g., 'DataTable': DataTableRenderableComponent,
-  //       'ImageCarousel': ImageCarouselRenderableComponent,
+  
+  // Shadcn Components
+  ShadcnBadge: ShadcnBadgeRenderer,
+  ShadcnAccordion: ShadcnAccordionRenderer,
+  ShadcnButton: ShadcnButtonRenderer,
+  // Add more Shadcn component types and their renderers here as you create them
+  // e.g., 'ShadcnAlert': ShadcnAlertRenderer,
+  //       'ShadcnCard': ShadcnCardRenderer,
 };
 
 /**
@@ -41,5 +52,3 @@ export function getRenderableComponent(type: string): ComponentType<RenderableCo
   }
   return component;
 }
-
-    
