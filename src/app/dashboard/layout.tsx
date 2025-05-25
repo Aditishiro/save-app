@@ -18,6 +18,8 @@ import {
   Loader2, 
   Package, 
   Building, // Icon for Platform Builder
+  Brain, // Icon for Platform Analytics
+  Wand2, // Icon for AI Platform Optimizer
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -42,13 +44,15 @@ const navItems = [
   { href: '/dashboard/my-forms', label: 'My Forms', icon: LayoutGrid },
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
-  { href: '/dashboard/ai-optimizer', label: 'AI Optimizer', icon: Bot },
+  { href: '/dashboard/ai-optimizer', label: 'AI Form Optimizer', icon: Bot }, // Renamed for clarity
   { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
 ];
 
 const platformBuilderNavItems = [
   { href: '/dashboard/platform-builder/my-platforms', label: 'My Platforms', icon: Building },
+  { href: '/dashboard/platform-builder/ai-optimizer', label: 'AI Platform Optimizer', icon: Wand2 },
+  { href: '/dashboard/platform-builder/analytics', label: 'Platform Analytics', icon: Brain },
 ];
 
 const adminNavItems = [ 
@@ -181,7 +185,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={currentUser.photoURL || "https://picsum.photos/id/237/200/200"} alt="User Avatar" data-ai-hint="user avatar" />
+                  <AvatarImage src={currentUser.photoURL || "https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
                   <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-left group-data-[collapsible=icon]:hidden">
