@@ -23,7 +23,8 @@ export default function ShadcnAccordionRenderer({ instance }: ShadcnAccordionRen
   const { configuredValues } = instance;
 
   const behaviorType = configuredValues?.behaviorType as "single" | "multiple" || "single";
-  const collapsible = typeof configuredValues?.collapsible === 'boolean' ? configuredValues.collapsible : false;
+  // Get the configured value for collapsible, defaulting to false if not a boolean or not set
+  const isCollapsibleConfigured = typeof configuredValues?.collapsible === 'boolean' ? configuredValues.collapsible : false;
   
   let items: AccordionItemData[] = [];
   if (typeof configuredValues?.items === 'string') {
@@ -38,7 +39,6 @@ export default function ShadcnAccordionRenderer({ instance }: ShadcnAccordionRen
       items = []; // Fallback to empty array on parse error
     }
   } else if (Array.isArray(configuredValues?.items)) {
-    // If it's already an array (e.g. from direct config or future improvement)
     items = configuredValues.items;
   }
 
@@ -47,10 +47,22 @@ export default function ShadcnAccordionRenderer({ instance }: ShadcnAccordionRen
     return <p className="text-sm text-muted-foreground">Accordion: No items configured or items are invalid.</p>;
   }
 
+  // Prepare props for the Accordion component
+  const accordionProps: React.ComponentProps<typeof Accordion> = {
+    type: behaviorType,
+    className: "w-full"
+  };
+
+  // The 'collapsible' prop is only relevant if type is 'single'.
+  // Only pass 'collapsible={true}' if it's explicitly configured as true.
+  // If it's false or not configured, we omit the prop, and Radix's default (false) applies.
+  if (behaviorType === "single" && isCollapsibleConfigured === true) {
+    accordionProps.collapsible = true;
+  }
+
   return (
-    <Accordion type={behaviorType} collapsible={collapsible} className="w-full">
+    <Accordion {...accordionProps}>
       {items.map((item, index) => {
-        // Ensure item.value is unique if not provided or duplicated
         const itemValue = item.value || `item-${index}-${instance.id}`;
         if (!item.title || !item.content) {
             console.warn("Accordion item missing title or content", item);
@@ -64,7 +76,6 @@ export default function ShadcnAccordionRenderer({ instance }: ShadcnAccordionRen
             <AccordionItem key={itemValue} value={itemValue}>
                 <AccordionTrigger>{item.title}</AccordionTrigger>
                 <AccordionContent>
-                {/* Basic HTML rendering; for complex HTML, a more robust solution might be needed */}
                 <div dangerouslySetInnerHTML={{ __html: item.content }} />
                 </AccordionContent>
             </AccordionItem>
