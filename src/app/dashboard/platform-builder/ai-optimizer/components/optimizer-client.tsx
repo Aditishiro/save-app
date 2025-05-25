@@ -16,7 +16,7 @@ export default function PlatformOptimizerClient() {
     <div className="space-y-6">
       <Alert>
         <Construction className="h-5 w-5" />
-        <AlertTitle>Feature Under Development</AlertTitle>
+        <AlertTitle>AI analysis Feature Under Development</AlertTitle>
         <AlertDescription>
           The AI Platform Optimizer is currently being built. Soon, you'll be able to input your platform's structure here for analysis and optimization suggestions.
         </AlertDescription>
