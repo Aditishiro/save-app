@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Construction, Wand2 } from 'lucide-react';
+import { Construction, Wand2, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -28,13 +28,11 @@ export default function PlatformOptimizerClient() {
   const [platformConfig, setPlatformConfig] = useState<string>('');
   const [selectedUseCaseValue, setSelectedUseCaseValue] = useState<string>('');
   const [customUseCaseText, setCustomUseCaseText] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false); // Added for potential future use
+  const [isLoading, setIsLoading] = useState(false); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // In a real implementation, this would gather platformConfig and use case data
-    // and call an AI flow.
     
     let finalUseCaseDescription = '';
     if (selectedUseCaseValue === 'other') {
@@ -77,6 +75,7 @@ export default function PlatformOptimizerClient() {
             rows={8}
             className="mt-1 font-mono text-sm"
             required
+            disabled={isLoading}
           />
           <p className="text-xs text-muted-foreground mt-1">
             Enter the JSON representation or a link to your platform's definition.
@@ -89,6 +88,7 @@ export default function PlatformOptimizerClient() {
             value={selectedUseCaseValue}
             onValueChange={setSelectedUseCaseValue}
             required
+            disabled={isLoading}
           >
             <SelectTrigger id="intendedUseCaseSelect" className="mt-1">
               <SelectValue placeholder="Select a use case..." />
@@ -115,13 +115,14 @@ export default function PlatformOptimizerClient() {
               rows={3}
               className="mt-1"
               required={selectedUseCaseValue === 'other'}
+              disabled={isLoading}
             />
           </div>
         )}
 
         <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
           {isLoading ? (
-            <Wand2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Wand2 className="mr-2 h-4 w-4" />
           )}
