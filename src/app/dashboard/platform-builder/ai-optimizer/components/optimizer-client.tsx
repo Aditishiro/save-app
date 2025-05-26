@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Construction, Wand2, Loader2, PackageSearch, Recycle, TrendingUp, Architecture, LightbulbBolt, Brain } from 'lucide-react';
+import { Construction, Wand2, Loader2, PackageSearch, Recycle, TrendingUp, Library, LightbulbBolt, Brain } from 'lucide-react'; // Changed Architecture to Library
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -75,9 +75,9 @@ export default function PlatformOptimizerClient() {
     <div className="space-y-6">
       <Alert>
         <Construction className="h-5 w-5" />
-        <AlertTitle>AI Platform Optimizer</AlertTitle>
+        <AlertTitle>AI analysis Feature Under Development</AlertTitle>
         <AlertDescription>
-          Input your platform's structural description or JSON configuration, specify its intended use case, and our AI will provide optimization suggestions.
+          The AI Platform Optimizer is currently being built. Soon, you'll be able to input your platform's structure here for analysis and optimization suggestions. For now, this form is for UI demonstration.
         </AlertDescription>
       </Alert>
 
@@ -167,7 +167,7 @@ export default function PlatformOptimizerClient() {
               <AccordionItem value="arch-suggestions">
                 <AccordionTrigger className="text-lg font-semibold hover:no-underline">
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                    <Architecture className="h-5 w-5" /> Architectural Suggestions
+                    <Library className="h-5 w-5" /> Architectural Suggestions 
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
