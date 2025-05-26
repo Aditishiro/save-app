@@ -1,16 +1,41 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Construction } from 'lucide-react';
+import { Construction, Wand2 } from 'lucide-react'; // Added Wand2
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select components
+
+const platformUseCaseOptions = [
+  { value: "ecommerce_platform", label: "E-commerce Platform (B2C, B2B)" },
+  { value: "saas_application", label: "SaaS Application (e.g., CRM, Project Management)" },
+  { value: "social_community_platform", label: "Social Network / Community Platform" },
+  { value: "cms_blogging_platform", label: "Content Management System (CMS) / Blogging" },
+  { value: "online_learning_platform", label: "Online Learning / Education Platform" },
+  { value: "booking_reservation_system", label: "Booking / Reservation System" },
+  { value: "internal_business_tool", label: "Internal Business Tool / Operations Dashboard" },
+  { value: "data_analytics_platform", label: "Data Analytics / Visualization Platform" },
+  { value: "fintech_application", label: "Fintech Application (e.g., PFM, Investment)" },
+  { value: "iot_platform", label: "IoT Platform / Device Management" },
+  { value: "other", label: "Other (Please specify below)" },
+];
 
 export default function PlatformOptimizerClient() {
   // Placeholder state and functions
-  // In a real implementation, this would handle platform data input and AI interaction
+  const [platformConfig, setPlatformConfig] = useState<string>('');
+  const [selectedUseCaseValue, setSelectedUseCaseValue] = useState<string>('');
+  const [customUseCaseText, setCustomUseCaseText] = useState<string>('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // In a real implementation, this would gather platformConfig and use case data
+    // and call an AI flow.
+    alert("Platform optimization submitted (conceptual).");
+  };
 
   return (
     <div className="space-y-6">
@@ -22,15 +47,17 @@ export default function PlatformOptimizerClient() {
         </AlertDescription>
       </Alert>
 
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-4 opacity-50 pointer-events-none">
+      <form onSubmit={handleSubmit} className="space-y-4 opacity-50 pointer-events-none">
         <div>
           <Label htmlFor="platformConfiguration" className="text-base font-medium">
             Platform Configuration (JSON or Link - Placeholder)
           </Label>
           <Textarea
             id="platformConfiguration"
+            value={platformConfig}
+            onChange={(e) => setPlatformConfig(e.target.value)}
             placeholder='{ "layouts": [...], "components": [...] } or https://example.com/platform-def.json'
-            rows={10}
+            rows={8}
             className="mt-1 font-mono text-sm"
             disabled
           />
@@ -38,7 +65,45 @@ export default function PlatformOptimizerClient() {
             Enter the JSON representation or a link to your platform's definition.
           </p>
         </div>
+
+        <div>
+          <Label htmlFor="intendedUseCaseSelect" className="text-base font-medium">Intended Use Case / Platform Type</Label>
+          <Select
+            value={selectedUseCaseValue}
+            onValueChange={setSelectedUseCaseValue}
+            disabled
+          >
+            <SelectTrigger id="intendedUseCaseSelect" className="mt-1">
+              <SelectValue placeholder="Select a use case..." />
+            </SelectTrigger>
+            <SelectContent>
+              {platformUseCaseOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">Select the primary purpose of the platform to help the AI provide targeted suggestions.</p>
+        </div>
+
+        {selectedUseCaseValue === 'other' && (
+          <div>
+            <Label htmlFor="customUseCaseText" className="text-base font-medium">Specify Other Use Case</Label>
+            <Textarea
+              id="customUseCaseText"
+              value={customUseCaseText}
+              onChange={(e) => setCustomUseCaseText(e.target.value)}
+              placeholder="Describe the specific use case or type of platform..."
+              rows={3}
+              className="mt-1"
+              disabled
+            />
+          </div>
+        )}
+
         <Button type="submit" disabled className="w-full sm:w-auto">
+          <Wand2 className="mr-2 h-4 w-4" />
           Optimize Platform (Disabled)
         </Button>
       </form>
