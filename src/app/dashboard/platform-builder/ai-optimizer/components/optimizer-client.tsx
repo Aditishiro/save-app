@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Construction, Wand2 } from 'lucide-react'; // Added Wand2
+import { Construction, Wand2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const platformUseCaseOptions = [
   { value: "ecommerce_platform", label: "E-commerce Platform (B2C, B2B)" },
@@ -25,16 +25,33 @@ const platformUseCaseOptions = [
 ];
 
 export default function PlatformOptimizerClient() {
-  // Placeholder state and functions
   const [platformConfig, setPlatformConfig] = useState<string>('');
   const [selectedUseCaseValue, setSelectedUseCaseValue] = useState<string>('');
   const [customUseCaseText, setCustomUseCaseText] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false); // Added for potential future use
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     // In a real implementation, this would gather platformConfig and use case data
     // and call an AI flow.
-    alert("Platform optimization submitted (conceptual).");
+    
+    let finalUseCaseDescription = '';
+    if (selectedUseCaseValue === 'other') {
+      finalUseCaseDescription = customUseCaseText.trim();
+    } else {
+      const selectedOption = platformUseCaseOptions.find(opt => opt.value === selectedUseCaseValue);
+      finalUseCaseDescription = selectedOption ? selectedOption.label : '';
+    }
+
+    console.log("Platform Config:", platformConfig);
+    console.log("Intended Use Case:", finalUseCaseDescription);
+    
+    // Simulate AI call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    alert("Conceptual Platform Optimization Submitted!\nConfig: " + platformConfig.substring(0,50) + "...\nUseCase: " + finalUseCaseDescription);
+    setIsLoading(false);
   };
 
   return (
@@ -43,11 +60,11 @@ export default function PlatformOptimizerClient() {
         <Construction className="h-5 w-5" />
         <AlertTitle>AI analysis Feature Under Development</AlertTitle>
         <AlertDescription>
-          The AI Platform Optimizer is currently being built. Soon, you'll be able to input your platform's structure here for analysis and optimization suggestions.
+          The AI Platform Optimizer is currently being built. Soon, you'll be able to input your platform's structure here for analysis and optimization suggestions. For now, this form is for UI demonstration.
         </AlertDescription>
       </Alert>
 
-      <form onSubmit={handleSubmit} className="space-y-4 opacity-50 pointer-events-none">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="platformConfiguration" className="text-base font-medium">
             Platform Configuration (JSON or Link - Placeholder)
@@ -59,7 +76,7 @@ export default function PlatformOptimizerClient() {
             placeholder='{ "layouts": [...], "components": [...] } or https://example.com/platform-def.json'
             rows={8}
             className="mt-1 font-mono text-sm"
-            disabled
+            required
           />
           <p className="text-xs text-muted-foreground mt-1">
             Enter the JSON representation or a link to your platform's definition.
@@ -71,7 +88,7 @@ export default function PlatformOptimizerClient() {
           <Select
             value={selectedUseCaseValue}
             onValueChange={setSelectedUseCaseValue}
-            disabled
+            required
           >
             <SelectTrigger id="intendedUseCaseSelect" className="mt-1">
               <SelectValue placeholder="Select a use case..." />
@@ -97,14 +114,18 @@ export default function PlatformOptimizerClient() {
               placeholder="Describe the specific use case or type of platform..."
               rows={3}
               className="mt-1"
-              disabled
+              required={selectedUseCaseValue === 'other'}
             />
           </div>
         )}
 
-        <Button type="submit" disabled className="w-full sm:w-auto">
-          <Wand2 className="mr-2 h-4 w-4" />
-          Optimize Platform (Disabled)
+        <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+          {isLoading ? (
+            <Wand2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Wand2 className="mr-2 h-4 w-4" />
+          )}
+          Optimize Platform
         </Button>
       </form>
     </div>
