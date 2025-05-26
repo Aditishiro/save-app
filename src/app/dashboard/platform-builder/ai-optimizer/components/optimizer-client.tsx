@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Construction, Wand2, Loader2, PackageSearch, Recycle, TrendingUp, Library, LightbulbBolt, Brain } from 'lucide-react'; // Changed Architecture to Library
+import { Construction, Wand2, Loader2, PackageSearch, Recycle, TrendingUp, Library, Lightbulb, Brain } from 'lucide-react'; // Corrected LightbulbBolt to Lightbulb
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -77,7 +77,7 @@ export default function PlatformOptimizerClient() {
         <Construction className="h-5 w-5" />
         <AlertTitle>AI analysis Feature Under Development</AlertTitle>
         <AlertDescription>
-          The AI Platform Optimizer is currently being built. Soon, you'll be able to input your platform's structure here for analysis and optimization suggestions. For now, this form is for UI demonstration.
+        The AI Platform Optimizer is currently being built. Soon, you'll be able to input your platform's structure here for analysis and optimization suggestions. For now, this form is for UI demonstration.
         </AlertDescription>
       </Alert>
 
@@ -212,7 +212,7 @@ export default function PlatformOptimizerClient() {
                 <AccordionItem value="redesign-ideas">
                   <AccordionTrigger className="text-lg font-semibold hover:no-underline">
                     <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
-                       <LightbulbBolt className="h-5 w-5"/> Redesign Ideas
+                       <Lightbulb className="h-5 w-5"/> Redesign Ideas
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
