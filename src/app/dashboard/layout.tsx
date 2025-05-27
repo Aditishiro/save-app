@@ -10,7 +10,6 @@ import {
   ClipboardList,
   Settings,
   Share2,
-  Bot,
   UserCircle,
   LogOut,
   Search,
@@ -20,7 +19,7 @@ import {
   Building, 
   Brain, 
   Wand2,
-  Home, // Added Home icon
+  Home, 
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -42,11 +41,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useAuth } from '@/contexts/auth-context'; 
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home }, // Changed to Dashboard Home
+  { href: '/dashboard', label: 'Dashboard', icon: Home }, 
   { href: '/dashboard/my-forms', label: 'My Forms', icon: LayoutGrid },
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
-  { href: '/dashboard/ai-optimizer', label: 'AI Form Optimizer', icon: Bot }, 
+  { href: '/dashboard/ai-optimizer', label: 'AI Form Optimizer', icon: Wand2 }, // Changed from Bot
   { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
 ];
@@ -69,7 +68,7 @@ const bottomNavItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { currentUser, loading, logOut } = useAuth();
   const router = useRouter();
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname(); 
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -98,6 +97,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         className="border-r bg-sidebar text-sidebar-foreground border-sidebar-border"
       >
         <SidebarHeader className="p-4 border-b border-sidebar-border">
+          {/* Logo text color will be controlled by --sidebar-foreground (lime) */}
           <Logo className="text-sidebar-foreground hover:text-sidebar-foreground/90" />
         </SidebarHeader>
         <SidebarContent className="p-2 flex flex-col justify-between">
@@ -108,10 +108,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <SidebarMenuButton
                     tooltip={item.label}
                     asChild
-                    isActive={pathname === item.href} // Set active state
+                    isActive={pathname === item.href} 
                   >
                     <a>
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-5 w-5" /> {/* Icons should inherit --sidebar-foreground */}
                       <span>{item.label}</span>
                     </a>
                   </SidebarMenuButton>
@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <SidebarMenuButton
                         tooltip={item.label}
                         asChild
-                        isActive={pathname === item.href} // Set active state
+                        isActive={pathname === item.href} 
                       >
                         <a>
                           <item.icon className="h-5 w-5" />
@@ -154,7 +154,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <SidebarMenuButton
                         tooltip={item.label}
                         asChild
-                        isActive={pathname === item.href} // Set active state
+                        isActive={pathname === item.href} 
                       >
                         <a>
                           <item.icon className="h-5 w-5" />
@@ -175,7 +175,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <SidebarMenuButton
                     tooltip={item.label}
                     asChild
-                    isActive={pathname === item.href} // Set active state
+                    isActive={pathname === item.href} 
                   >
                     <a>
                       <item.icon className="h-5 w-5" />
@@ -196,6 +196,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-left group-data-[collapsible=icon]:hidden">
+                  {/* Text for user name/email in sidebar footer should now be lime */}
                   <p className="text-sm font-medium truncate">{currentUser.displayName || currentUser.email}</p>
                   {currentUser.displayName && <p className="text-xs text-sidebar-foreground/70 truncate">{currentUser.email}</p>}
                 </div>
@@ -224,30 +225,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-header-background text-header-foreground px-6 shadow-md">
-          <SidebarTrigger className="md:hidden text-header-foreground hover:text-header-foreground/80" />
-          {/* "Hey Osaze" - like element can go here if needed */}
+        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-[hsl(var(--header-background))] text-[hsl(var(--header-foreground))] px-6 shadow-md">
+          <SidebarTrigger className="md:hidden text-[hsl(var(--header-foreground))] hover:opacity-80" />
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search..."
-                className="w-full rounded-lg bg-background/80 dark:bg-muted/50 text-foreground pl-8 md:w-[200px] lg:w-[320px] h-9 border-border focus:bg-background dark:focus:bg-muted"
+                className="w-full rounded-lg bg-card text-card-foreground pl-8 md:w-[200px] lg:w-[320px] h-9 border-border focus:bg-card dark:focus:bg-card"
               />
             </div>
           </div>
-          {/* Other header elements from image like date, timeline, user profile can be added here */}
           <Avatar className="h-9 w-9">
             <AvatarImage src={currentUser.photoURL || "https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
             <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
         </header>
-        <main className="flex-1 p-6 bg-background overflow-y-auto"> {/* Ensured main content area uses light gray background and scrolls */}
+        <main className="flex-1 p-6 bg-background overflow-y-auto">
           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
