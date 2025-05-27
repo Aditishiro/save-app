@@ -25,7 +25,7 @@ export default function SettingsPage() {
   // Branding State
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoFileName, setLogoFileName] = useState<string>('');
-  const [themeColor, setThemeColor] = useState<string>("#1976D2"); // Default to Material Blue 500
+  const [themeColor, setThemeColor] = useState<string>("#60A5FA"); // Default to desaturated blue
 
   // Submission Rules State
   const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState<boolean>(true);
@@ -113,7 +113,7 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader
-        title="PlatformCraft Settings"
+        title="CentralBuild Settings"
         description="Configure branding, submission rules, data export options, and user access for your platform."
       />
       <Tabs defaultValue="branding" className="w-full">
@@ -128,7 +128,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Branding Settings</CardTitle>
-              <CardDescription>Customize the look and feel of PlatformCraft and generated platforms.</CardDescription>
+              <CardDescription>Customize the look and feel of CentralBuild and generated platforms.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -222,7 +222,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Access Control</CardTitle>
-              <CardDescription>Manage user roles and permissions for PlatformCraft (mock implementation).</CardDescription>
+              <CardDescription>Manage user roles and permissions for CentralBuild (mock implementation).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2 p-4 border rounded-lg">

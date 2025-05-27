@@ -11,7 +11,7 @@ const inter = Inter({ // Instantiate Inter
 });
 
 export const metadata: Metadata = {
-  title: 'PlatformCraft',
+  title: 'CentralBuild',
   description: 'Visually design and build powerful custom platforms and applications.',
 };
 

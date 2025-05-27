@@ -43,7 +43,7 @@ export default function LoginPage() {
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         // Removed the emailVerified check to allow sign-in without verification
-        router.push('/dashboard/my-forms');
+        router.push('/dashboard');
       }
     } catch (authError: any) {
       console.error("Firebase Auth Error:", authError);
@@ -125,7 +125,7 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2 text-primary mb-2">
             <Briefcase className="h-8 w-8 sm:h-10 sm:w-10" />
-            <span className="text-2xl sm:text-3xl font-bold">PlatformCraft</span>
+            <span className="text-2xl sm:text-3xl font-bold">CentralBuild</span>
           </Link>
           <p className="text-sm text-muted-foreground text-center max-w-xs">
             Visually design and build powerful custom platforms and applications.
@@ -140,7 +140,7 @@ export default function LoginPage() {
             <CardDescription>
               {showPasswordReset
                 ? "Enter your email address and we'll send you a link to reset your password."
-                : (isSignUp ? "Sign up to start using PlatformCraft." : "Log in to your PlatformCraft account to continue.")
+                : (isSignUp ? "Sign up to start using CentralBuild." : "Log in to your CentralBuild account to continue.")
               }
             </CardDescription>
           </CardHeader>
@@ -288,7 +288,7 @@ export default function LoginPage() {
         </Card>
       </div>
       <footer className="mt-12 text-center text-xs text-muted-foreground/80">
-        <p>&copy; {new Date().getFullYear()} PlatformCraft. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} CentralBuild. All rights reserved.</p>
       </footer>
     </div>
   );

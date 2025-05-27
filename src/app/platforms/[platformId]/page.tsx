@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PlatformPageProps): Promise<M
       const platformData = platformSnap.data() as PlatformData;
       if (platformData.status === 'published') {
         return {
-          title: `${platformData.name} | PlatformCraft Platform`,
+          title: `${platformData.name} | CentralBuild Platform`,
           description: platformData.description || `View the ${platformData.name} platform.`,
         };
       }
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PlatformPageProps): Promise<M
   // Default or fallback metadata if platform not found or not published
   return {
     title: 'Platform Viewer',
-    description: 'View a dynamically rendered platform built with PlatformCraft.',
+    description: 'View a dynamically rendered platform built with CentralBuild.',
   };
 }
 

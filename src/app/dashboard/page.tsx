@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, LayoutGrid, Building, Layers, Bot, ClipboardList, BarChart3, Zap, ArrowRight, Brain, Wand2 } from 'lucide-react';
+import { PlusCircle, LayoutGrid, Building, Layers, Wand2, ClipboardList, BarChart3, Zap, ArrowRight, Brain } from 'lucide-react';
 
 // Mock data for now - replace with actual data fetching later
 const userStats = {
@@ -16,7 +16,7 @@ export default function DashboardHomePage() {
   return (
     <>
       <PageHeader
-        title="Welcome to PlatformCraft!"
+        title="Welcome to CentralBuild!"
         description="Your central hub for building and managing powerful forms and platforms."
       />
 
@@ -83,7 +83,7 @@ export default function DashboardHomePage() {
             <CardContent className="space-y-2">
               <Link key="/dashboard/ai-optimizer" href="/dashboard/ai-optimizer" className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 text-sm transition-colors text-foreground hover:text-primary">
                 <div className="flex items-center gap-2">
-                  <Bot className="h-4 w-4" />
+                  <Wand2 className="h-4 w-4" /> {/* Changed from Bot */}
                   AI Form Optimizer
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />

@@ -17,7 +17,7 @@ export function Logo({ href = "/dashboard", className, showText = true }: LogoPr
       className={`flex items-center gap-2 text-lg font-semibold ${className}`}
     >
       <Briefcase className="h-6 w-6" />
-      {showText && <span>PlatformCraft</span>}
+      {showText && <span>CentralBuild</span>}
     </Link>
   );
 }

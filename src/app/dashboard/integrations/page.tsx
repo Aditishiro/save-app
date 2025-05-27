@@ -16,7 +16,7 @@ export default function IntegrationsPage() {
     <>
       <PageHeader
         title="Integrations"
-        description="Connect PlatformCraft with your favorite tools and services."
+        description="Connect CentralBuild with your favorite tools and services."
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {mockIntegrations.map((integration) => (
