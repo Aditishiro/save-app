@@ -8,66 +8,66 @@ body {
 
 @layer base {
   :root {
-    /* Core Dark Theme (Neon) */
-    --background: 0 0% 0%; /* Black */
-    --foreground: 0 0% 100%; /* White */
+    /* Muted Dark Theme */
+    --background: 240 6% 10%; /* Dark cool gray */
+    --foreground: 240 5% 85%; /* Light cool gray/Off-white */
 
-    --card: 0 0% 7%; /* Very Dark Gray (slightly off-black) */
-    --card-foreground: 0 0% 100%; /* White */
+    --card: 240 6% 12%; /* Slightly lighter than background */
+    --card-foreground: 240 5% 80%; /* Softer than main foreground */
 
-    --popover: 0 0% 7%; /* Very Dark Gray */
-    --popover-foreground: 0 0% 100%; /* White */
+    --popover: 240 6% 10%; /* Consistent with background */
+    --popover-foreground: 240 5% 85%; /* Consistent with foreground */
 
-    /* Primary for main actions - Neon Purple */
-    --primary: 280 100% 50%; 
-    --primary-foreground: 0 0% 100%; 
+    /* Primary for main actions - Muted Indigo/Purple */
+    --primary: 260 60% 60%; 
+    --primary-foreground: 0 0% 100%; /* White for good contrast on muted purple */
 
-    /* Secondary for less prominent elements or backgrounds */
-    --secondary: 0 0% 12%;       /* Dark Gray */
-    --secondary-foreground: 0 0% 85%; 
+    /* Secondary for less prominent elements */
+    --secondary: 240 5% 20%;       /* Medium dark gray */
+    --secondary-foreground: 240 5% 75%; /* Medium light gray */
 
-    --muted: 0 0% 15%; 
-    --muted-foreground: 0 0% 65%; 
+    --muted: 240 5% 15%; 
+    --muted-foreground: 240 5% 55%; /* Softer muted text */
 
-    /* Accent for highlights, icons - Lime Green */
-    --accent: 119 100% 55%;           
-    --accent-foreground: 0 0% 0%;  
+    /* Accent for highlights, icons - Muted Teal */
+    --accent: 170 50% 50%;           
+    --accent-foreground: 0 0% 100%; /* White for good contrast */
 
-    --destructive: 0 75% 55%;       
-    --destructive-foreground: 0 0% 100%; 
+    --destructive: 0 60% 50%; /* Slightly less saturated red */      
+    --destructive-foreground: 0 0% 95%; 
 
-    --success: 120 70% 50%;          
-    --success-foreground: 0 0% 0%; 
+    --success: 140 50% 45%; /* Slightly less saturated green */          
+    --success-foreground: 0 0% 95%; 
 
-    --border: 0 0% 20%; 
-    --input: 0 0% 10%;  
-    --ring: 119 100% 55%; 
+    --border: 240 5% 22%; /* Slightly more visible border */
+    --input: 240 5% 16%;  /* Slightly lighter input background */
+    --ring: 170 50% 55%; /* Muted Teal, same as accent */
 
     --radius: 0.5rem;
     
-    /* Sidebar variables - Black & White Theme */
-    --sidebar-background: 0 0% 0%; /* Black */
-    --sidebar-foreground: 0 0% 100%; /* White - for default text & icons */
+    /* Sidebar variables - Muted Black & White Theme */
+    --sidebar-background: 240 4% 8%; /* Very Dark Gray, near black */
+    --sidebar-foreground: 0 0% 80%; /* Off-white/Light Gray for text & icons */
     
-    --sidebar-primary: 0 0% 20%; /* Dark Gray - Active item background */
-    --sidebar-primary-foreground: 0 0% 100%; /* White - Active item text/icon */
+    --sidebar-primary: 240 4% 25%; /* Dark Gray - Active item background */
+    --sidebar-primary-foreground: 0 0% 95%; /* White - Active item text/icon */
 
-    --sidebar-accent: 0 0% 12%; /* Muted Gray - Hover item background */
-    --sidebar-accent-foreground: 0 0% 100%; /* White - Hover item text/icon */
+    --sidebar-accent: 240 4% 15%; /* Muted Dark Gray - Hover item background */
+    --sidebar-accent-foreground: 0 0% 90%; /* Off-White - Hover item text/icon */
     
-    --sidebar-border: 0 0% 15%; /* Dark Gray - Subtle border for sidebar elements */
-    --sidebar-ring: 0 0% 100%; /* White - Focus ring within sidebar */
+    --sidebar-border: 240 4% 18%; /* Dark Gray - Subtle border for sidebar elements */
+    --sidebar-ring: 0 0% 80%; /* Light Gray - Focus ring within sidebar */
 
     /* Header variables */
-    --header-background: 0 0% 5%; /* Very Dark for header */
-    --header-foreground: 0 0% 100%; /* White text for header */
+    --header-background: 240 5% 12%; /* Darker cool gray for header */
+    --header-foreground: 240 5% 85%; /* Off-white text for header */
 
-    /* Chart colors will need significant adjustment for a neon theme if used */
-    --chart-1: 280 100% 60%; 
-    --chart-2: 119 100% 50%; 
-    --chart-3: 210 100% 60%; 
-    --chart-4: 60 100% 55%;  
-    --chart-5: 0 100% 60%;   
+    /* Chart colors adjustments for a muted dark theme */
+    --chart-1: 260 50% 60%; 
+    --chart-2: 170 40% 50%; 
+    --chart-3: 210 50% 60%; 
+    --chart-4: 40 50% 60%;  
+    --chart-5: 0 50% 60%;   
   }
 
 }
@@ -93,10 +93,10 @@ body {
   
   /* Default sidebar icon color */
   [data-sidebar=menu-button] svg {
-    color: hsl(var(--sidebar-foreground)); /* Default icon color (white) */
+    color: hsl(var(--sidebar-foreground)); 
   }
   /* Sidebar icon color on hover */
   [data-sidebar=menu-button]:hover svg {
-     color: hsl(var(--sidebar-accent-foreground)); /* Icon color on hover (white) */
+     color: hsl(var(--sidebar-accent-foreground)); 
   }
 }
