@@ -4,9 +4,11 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, LayoutGrid, Building, Layers, Wand2, ClipboardList, BarChart3, Zap, ArrowRight, Brain, Home, LineChart, PieChart as PieChartIcon } from 'lucide-react';
+import { PlusCircle, LayoutGrid, Building, Layers, Wand2, ClipboardList, BarChart3, Zap, ArrowRight, Brain, Home } from 'lucide-react';
 import FormSubmissionsBarChart from './components/charts/form-submissions-bar-chart';
 import FormStatusPieChart from './components/charts/form-status-pie-chart';
+import PlatformCreationsBarChart from './components/charts/platform-creations-bar-chart'; // New import
+import PlatformStatusPieChart from './components/charts/platform-status-pie-chart'; // New import
 
 
 // Mock data for now - replace with actual data fetching later
@@ -24,7 +26,7 @@ export default function DashboardHomePage() {
       />
 
       <> {/* React Fragment Wrapper */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"> {/* Adjusted for more columns */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Quick Actions Card */}
           <Card className="lg:col-span-1 transition-all hover:shadow-xl hover:scale-[1.01]">
             <CardHeader>
@@ -149,14 +151,20 @@ export default function DashboardHomePage() {
             </CardContent>
           </Card>
 
-          {/* Form Submissions Chart Card */}
-          <div className="md:col-span-2 lg:col-span-2"> {/* Span 2 columns on medium and large screens */}
+          {/* Form Charts */}
+          <div className="md:col-span-2 lg:col-span-2">
             <FormSubmissionsBarChart />
           </div>
-
-          {/* Form Status Pie Chart Card */}
-          <div className="md:col-span-2 lg:col-span-2"> {/* Span 2 columns on medium and large screens */}
+          <div className="md:col-span-2 lg:col-span-2">
             <FormStatusPieChart />
+          </div>
+
+          {/* Platform Charts - New */}
+          <div className="md:col-span-2 lg:col-span-2">
+            <PlatformCreationsBarChart />
+          </div>
+          <div className="md:col-span-2 lg:col-span-2">
+            <PlatformStatusPieChart />
           </div>
 
         </div>
