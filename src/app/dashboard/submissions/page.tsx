@@ -6,9 +6,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Status filter removed for now
 import { Download, Search, Eye, Loader2, AlertTriangle } from 'lucide-react';
-// import { Badge } from '@/components/ui/badge'; // Not used currently
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
@@ -18,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  // DialogTrigger, // Not used directly here
 } from "@/components/ui/dialog";
 
 interface SubmissionData {
@@ -40,17 +37,11 @@ export default function SubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionData | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  // const [filterStatus, setFilterStatus] = useState('all'); // Status filter removed for now
 
   useEffect(() => {
     if (currentUser) {
       setIsLoading(true);
       setError(null);
-      // Fetch submissions.
-      // TODO: Implement robust fetching based on user's forms.
-      // This currently fetches all recent submissions for demo purposes.
-      // A scalable solution would involve querying forms owned by the user, then submissions for those forms,
-      // or denormalizing formOwnerId onto submission documents.
       const submissionsCollectionRef = collection(db, 'submissions');
       const q = query(submissionsCollectionRef, orderBy('submissionDate', 'desc'), limit(50));
 
@@ -85,7 +76,6 @@ export default function SubmissionsPage() {
     try {
       return new Date(timestamp.toDate()).toLocaleString();
     } catch (e) {
-      // Fallback for older Timestamp-like objects that might not have toDate()
       if (timestamp.seconds) {
          return new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000).toLocaleString();
       }
@@ -93,12 +83,10 @@ export default function SubmissionsPage() {
     }
   };
   
-  // Client-side filtering
   const filteredSubmissions = submissions.filter(sub => {
     if (!sub) return false;
     const lowerSearchTerm = searchTerm.toLowerCase();
     
-    // Check basic fields
     const matchesBasicFields = 
         sub.formTitle?.toLowerCase().includes(lowerSearchTerm) ||
         sub.id?.toLowerCase().includes(lowerSearchTerm) ||
@@ -106,7 +94,6 @@ export default function SubmissionsPage() {
 
     if (matchesBasicFields) return true;
 
-    // Check data object values
     if (sub.data && typeof sub.data === 'object') {
       return Object.values(sub.data).some(val => 
         String(val).toLowerCase().includes(lowerSearchTerm)
@@ -146,7 +133,7 @@ export default function SubmissionsPage() {
         title="Form Submissions"
         description="View and manage data collected through your forms."
         actions={
-          <Button variant="outline" disabled> {/* Implement export later */}
+          <Button variant="outline" disabled>
             <Download className="mr-2 h-4 w-4" /> Export All (CSV)
           </Button>
         }
@@ -172,7 +159,6 @@ export default function SubmissionsPage() {
               <TableHead>Form Title</TableHead>
               <TableHead>Submitter ID</TableHead>
               <TableHead>Date</TableHead>
-              {/* <TableHead>Status</TableHead> */} {/* Status column removed for now */}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -185,11 +171,6 @@ export default function SubmissionsPage() {
                   {submission.submitterId === currentUser?.uid ? "You" : (submission.submitterId || 'anonymous')}
                 </TableCell>
                 <TableCell>{formatDate(submission.submissionDate)}</TableCell>
-                {/* <TableCell>
-                  <Badge variant={submission.status === 'Reviewed' ? 'secondary' : submission.status === 'Actioned' ? 'outline' : 'default'}>
-                    {submission.status || 'New'}
-                  </Badge>
-                </TableCell> */}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" onClick={() => handleViewSubmission(submission)}>
                     <Eye className="mr-2 h-4 w-4"/> View
@@ -198,7 +179,7 @@ export default function SubmissionsPage() {
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center"> {/* Adjusted colSpan */}
+                <TableCell colSpan={5} className="h-24 text-center">
                   No submissions found matching your criteria.
                 </TableCell>
               </TableRow>
