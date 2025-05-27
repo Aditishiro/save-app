@@ -4,12 +4,15 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, LayoutGrid, Building, Layers, Wand2, ClipboardList, BarChart3, Zap, ArrowRight, Brain } from 'lucide-react';
+import { PlusCircle, LayoutGrid, Building, Layers, Wand2, ClipboardList, BarChart3, Zap, ArrowRight, Brain, Home, LineChart, PieChart as PieChartIcon } from 'lucide-react';
+import FormSubmissionsBarChart from './components/charts/form-submissions-bar-chart';
+import FormStatusPieChart from './components/charts/form-status-pie-chart';
+
 
 // Mock data for now - replace with actual data fetching later
 const userStats = {
-  formsCount: 5, // Example
-  platformsCount: 2, // Example
+  formsCount: Math.floor(Math.random() * 10) + 3,
+  platformsCount: Math.floor(Math.random() * 5) + 1,
 };
 
 export default function DashboardHomePage() {
@@ -21,9 +24,9 @@ export default function DashboardHomePage() {
       />
 
       <> {/* React Fragment Wrapper */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"> {/* Adjusted for more columns */}
           {/* Quick Actions Card */}
-          <Card className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-1 transition-all hover:shadow-xl hover:scale-[1.02]">
+          <Card className="lg:col-span-1 transition-all hover:shadow-xl hover:scale-[1.01]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Zap className="h-5 w-5 text-primary" />
@@ -47,7 +50,7 @@ export default function DashboardHomePage() {
           </Card>
 
           {/* My Content Card */}
-          <Card className="col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 transition-all hover:shadow-xl hover:scale-[1.02]">
+          <Card className="lg:col-span-1 transition-all hover:shadow-xl hover:scale-[1.01]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <LayoutGrid className="h-5 w-5 text-primary" />
@@ -72,7 +75,7 @@ export default function DashboardHomePage() {
           </Card>
 
           {/* AI & Analytics Card */}
-          <Card className="col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 transition-all hover:shadow-xl hover:scale-[1.02]">
+          <Card className="lg:col-span-1 transition-all hover:shadow-xl hover:scale-[1.01]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Wand2 className="h-5 w-5 text-primary" />
@@ -83,7 +86,7 @@ export default function DashboardHomePage() {
             <CardContent className="space-y-2">
               <Link key="/dashboard/ai-optimizer" href="/dashboard/ai-optimizer" className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 text-sm transition-colors text-foreground hover:text-primary">
                 <div className="flex items-center gap-2">
-                  <Wand2 className="h-4 w-4" /> {/* Changed from Bot */}
+                  <Wand2 className="h-4 w-4" />
                   AI Form Optimizer
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -113,7 +116,7 @@ export default function DashboardHomePage() {
           </Card>
           
           {/* Resources Card */}
-          <Card className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-1 transition-all hover:shadow-xl hover:scale-[1.02]">
+          <Card className="lg:col-span-1 transition-all hover:shadow-xl hover:scale-[1.01]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Layers className="h-5 w-5 text-primary" />
@@ -145,6 +148,17 @@ export default function DashboardHomePage() {
                 </Link>
             </CardContent>
           </Card>
+
+          {/* Form Submissions Chart Card */}
+          <div className="md:col-span-2 lg:col-span-2"> {/* Span 2 columns on medium and large screens */}
+            <FormSubmissionsBarChart />
+          </div>
+
+          {/* Form Status Pie Chart Card */}
+          <div className="md:col-span-2 lg:col-span-2"> {/* Span 2 columns on medium and large screens */}
+            <FormStatusPieChart />
+          </div>
+
         </div>
       </> {/* Closing React Fragment Wrapper */}
     </>
