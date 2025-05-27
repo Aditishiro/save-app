@@ -8,36 +8,36 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* Figma: #FFFFFF */
-    --foreground: 0 0% 10%; /* Figma: #1A1A1A */
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 10%; /* Dark Gray for text */
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%; /* White */
     --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
 
-    --primary: 210 69% 49%;         /* Material Blue 500: #1976D2 - Kept for main content buttons */
-    --primary-foreground: 0 0% 100%; /* White on Primary */
+    --primary: 217 94% 67%;         /* Desaturated Blue #60A5FA (from PRD) */
+    --primary-foreground: 0 0% 100%; /* White for contrast on blue */
 
-    --secondary: 0 0% 94%;       /* Figma: #F0F0F0 (Light Gray) - Material Surface variant */
-    --secondary-foreground: 0 0% 25%; /* Darker text on secondary */
+    --secondary: 0 0% 96%;       /* Very Light Gray (e.g., #F5F5F5) for secondary backgrounds */
+    --secondary-foreground: 0 0% 20%; /* Darker gray for text on secondary */
 
-    --muted: 0 0% 94%; /* Figma: #F0F0F0 */
-    --muted-foreground: 0 0% 46%; /* Figma: #757575 */
+    --muted: 0 0% 96%; /* Consistent with secondary for muted backgrounds */
+    --muted-foreground: 0 0% 45%; /* Medium Gray for muted text */
 
-    --accent: 40 100% 50%;           /* Material Amber 500: #FFB300 - Kept for general accents */
-    --accent-foreground: 0 0% 10%;  /* Dark text on Accent */
+    --accent: 217 90% 75%;           /* Lighter shade of primary blue for accents/hovers */
+    --accent-foreground: 0 0% 10%;  /* Dark text for contrast on lighter blue accent */
 
-    --destructive: 4 90% 58%;       /* Figma: #F44336 (Red) */
+    --destructive: 0 84% 60%;       /* Red */
     --destructive-foreground: 0 0% 100%; /* White on Destructive */
 
-    --success: 122 39% 49%;          /* Figma: #4CAF50 (Green) */
+    --success: 142 71% 45%;          /* Green */
     --success-foreground: 0 0% 100%; /* White on Success */
 
-    --border: 0 0% 88%; /* Figma: #E0E0E0 */
-    --input: 0 0% 88%;  /* Border for input, background is white */
-    --ring: 210 69% 49%; /* Material Blue 500 for focus rings */
+    --border: 0 0% 90%; /* Light Gray (e.g., #E6E6E6) for borders */
+    --input: 0 0% 90%;  /* Border for input, background remains white (or --background) */
+    --ring: 217 94% 67%; /* Primary color for focus rings */
 
     --radius: 0.375rem; /* 6px - results in 4px for rounded-md */
     
@@ -73,7 +73,7 @@ body {
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 88%;
 
-    --primary: 210 90% 77%;        /* Material Blue 200: #90CAF9 - Kept for main content buttons */
+    --primary: 217 80% 70%;        /* Lighter Desaturated Blue for dark mode */
     --primary-foreground: 0 0% 10%; /* Dark text on Light Blue */
 
     --secondary: 0 0% 17%;      /* Material Dark Surface +2dp: #2C2C2C */
@@ -82,18 +82,18 @@ body {
     --muted: 0 0% 17%;
     --muted-foreground: 0 0% 69%; /* Material Dark OnSurface Medium Emphasis: #B0B0B0 */
 
-    --accent: 45 100% 85%; /* Material Amber 200: #FFECB3 - Kept for general accents */
-    --accent-foreground: 0 0% 10%; /* Dark text on Light Amber */
+    --accent: 217 75% 78%; /* Even Lighter shade of primary blue for dark mode accents */
+    --accent-foreground: 0 0% 10%; /* Dark text on Light Blue */
 
-    --destructive: 4 70% 65%; /* Material Dark Error: Lighter Red #EF5350 */
-    --destructive-foreground: 0 0% 10%; /* Dark Text on Error */
+    --destructive: 0 70% 65%; /* Lighter Red for dark mode */
+    --destructive-foreground: 0 0% 100%; 
 
-    --success: 122 45% 65%; /* Lighter green for dark mode */
-    --success-foreground: 0 0% 10%; /* Dark text on success */
+    --success: 142 60% 55%; /* Lighter green for dark mode */
+    --success-foreground: 0 0% 100%;
 
     --border: 0 0% 23%; /* Material Dark OnSurface Disabled: #3A3A3A */
     --input: 0 0% 23%;
-    --ring: 210 90% 77%; /* Material Blue 200 for focus rings */
+    --ring: 217 80% 70%; /* Primary color for focus rings in dark mode */
     
     /* Sidebar variables adjusted based on the provided image (consistent for dark theme) */
     --sidebar-background: 220 25% 15%; /* Dark Slate Blue/Charcoal */
