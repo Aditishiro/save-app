@@ -17,9 +17,9 @@ import {
   BarChart3,
   Loader2, 
   Package, 
-  Building, // Icon for Platform Builder
-  Brain, // Icon for Platform Analytics
-  Wand2, // Icon for AI Platform Optimizer
+  Building, 
+  Brain, 
+  Wand2, 
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -38,13 +38,13 @@ import { Logo } from '@/components/common/logo';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useAuth } from '@/contexts/auth-context'; // Import useAuth
+import { useAuth } from '@/contexts/auth-context'; 
 
 const navItems = [
   { href: '/dashboard/my-forms', label: 'My Forms', icon: LayoutGrid },
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
-  { href: '/dashboard/ai-optimizer', label: 'AI Form Optimizer', icon: Bot }, // Renamed for clarity
+  { href: '/dashboard/ai-optimizer', label: 'AI Form Optimizer', icon: Bot }, 
   { href: '/dashboard/form-analytics', label: 'Form Analytics', icon: BarChart3 },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Share2 },
 ];
@@ -57,7 +57,6 @@ const platformBuilderNavItems = [
 
 const adminNavItems = [ 
   { href: '/dashboard/platform-admin/global-components', label: 'Global Components', icon: Package },
-  // Add other platform admin links here, e.g., tenant management
 ];
 
 const bottomNavItems = [
@@ -71,13 +70,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !currentUser) {
-      router.push('/'); // Redirect to login if not authenticated and not loading
+      router.push('/'); 
     }
   }, [currentUser, loading, router]);
 
   if (loading || !currentUser) {
-    // Show a loading state or null while checking auth / redirecting
-    // This prevents rendering dashboard content prematurely
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -85,17 +82,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // For now, simple check if user is 'admin' - replace with actual role check from custom claims
-  const isPlatformAdmin = currentUser?.email === 'testadmin@example.com'; // Example: simple check
-  // For now, any logged in user can access platform builder. Refine with roles later.
+  const isPlatformAdmin = currentUser?.email === 'testadmin@example.com'; 
   const canAccessPlatformBuilder = !!currentUser;
 
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar variant="sidebar" collapsible="icon" side="left" className="border-r border-sidebar-border">
+      <Sidebar 
+        variant="sidebar" 
+        collapsible="icon" 
+        side="left" 
+        className="border-r bg-sidebar text-sidebar-foreground border-sidebar-border"
+      >
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <Logo />
+          <Logo className="text-sidebar-foreground hover:text-sidebar-foreground/90" />
         </SidebarHeader>
         <SidebarContent className="p-2 flex flex-col justify-between">
           <SidebarMenu>
@@ -138,7 +138,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </>
             )}
 
-            {isPlatformAdmin && ( // Conditionally render admin section
+            {isPlatformAdmin && ( 
               <>
                 <SidebarMenuButton variant="ghost" className="my-2 pointer-events-none justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
                   <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Platform Admin</span>
@@ -162,7 +162,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </SidebarMenu>
 
-           <SidebarMenu className="mt-auto"> {/* Pushes settings to the bottom */}
+           <SidebarMenu className="mt-auto"> 
              {bottomNavItems.map((item) => (
               <SidebarMenuItem key={item.label}>
                 <Link href={item.href} passHref legacyBehavior>
@@ -197,7 +197,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <DropdownMenuContent side="right" align="start" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled> {/* Add link to profile page later */}
+              <DropdownMenuItem disabled> 
                 <UserCircle className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
@@ -217,20 +217,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6 shadow-sm">
-          <SidebarTrigger className="md:hidden" />
+        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-header-background text-header-foreground px-6 shadow-md">
+          <SidebarTrigger className="md:hidden text-header-foreground hover:text-header-foreground/80" />
+          {/* "Hey Osaze" - like element can go here if needed */}
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search..."
-                className="w-full rounded-md bg-muted pl-8 md:w-[200px] lg:w-[320px] h-9"
+                className="w-full rounded-lg bg-background/80 dark:bg-muted/50 text-foreground pl-8 md:w-[200px] lg:w-[320px] h-9 border-border focus:bg-background dark:focus:bg-muted"
               />
             </div>
           </div>
+          {/* Other header elements from image like date, timeline, user profile can be added here */}
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={currentUser.photoURL || "https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
+            <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+          </Avatar>
         </header>
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 bg-background"> {/* Ensured main content area uses the new light gray background */}
           {children}
         </main>
       </SidebarInset>

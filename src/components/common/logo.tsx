@@ -12,9 +12,9 @@ export function Logo({ href = "/dashboard/my-forms", className, showText = true 
   return (
     <Link
       href={href}
-      // Default to text-primary, sidebar specific styling can override this via its context if needed
-      // For sidebar, text-sidebar-foreground or text-sidebar-primary (for active states) is typically handled by parent or theme
-      className={`flex items-center gap-2 text-lg font-semibold text-primary hover:text-primary/90 transition-colors ${className}`}
+      // Default text color will be inherited from parent (e.g., sidebar-foreground)
+      // Hover effect can be more specific if needed
+      className={`flex items-center gap-2 text-lg font-semibold ${className}`}
     >
       <Briefcase className="h-6 w-6" />
       {showText && <span>PlatformCraft</span>}
