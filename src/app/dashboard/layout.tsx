@@ -3,7 +3,7 @@
 
 import { type ReactNode, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { usePathname, useRouter } from 'next/navigation'; // Import usePathname and useRouter
 import {
   LayoutGrid,
   Layers,
@@ -19,7 +19,8 @@ import {
   Package, 
   Building, 
   Brain, 
-  Wand2, 
+  Wand2,
+  Home, // Added Home icon
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -41,6 +42,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useAuth } from '@/contexts/auth-context'; 
 
 const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: Home }, // Changed to Dashboard Home
   { href: '/dashboard/my-forms', label: 'My Forms', icon: LayoutGrid },
   { href: '/dashboard/templates', label: 'Templates', icon: Layers },
   { href: '/dashboard/submissions', label: 'Submissions', icon: ClipboardList },
@@ -67,6 +69,7 @@ const bottomNavItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { currentUser, loading, logOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname(); // Get current path
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -105,6 +108,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <SidebarMenuButton
                     tooltip={item.label}
                     asChild
+                    isActive={pathname === item.href} // Set active state
                   >
                     <a>
                       <item.icon className="h-5 w-5" />
@@ -126,6 +130,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <SidebarMenuButton
                         tooltip={item.label}
                         asChild
+                        isActive={pathname === item.href} // Set active state
                       >
                         <a>
                           <item.icon className="h-5 w-5" />
@@ -149,6 +154,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <SidebarMenuButton
                         tooltip={item.label}
                         asChild
+                        isActive={pathname === item.href} // Set active state
                       >
                         <a>
                           <item.icon className="h-5 w-5" />
@@ -169,6 +175,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <SidebarMenuButton
                     tooltip={item.label}
                     asChild
+                    isActive={pathname === item.href} // Set active state
                   >
                     <a>
                       <item.icon className="h-5 w-5" />
@@ -236,10 +243,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
         </header>
-        <main className="flex-1 p-6 bg-background"> {/* Ensured main content area uses the new light gray background */}
+        <main className="flex-1 p-6 bg-background overflow-y-auto"> {/* Ensured main content area uses light gray background and scrolls */}
           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
 }
+

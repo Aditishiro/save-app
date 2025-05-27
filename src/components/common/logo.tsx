@@ -8,7 +8,7 @@ interface LogoProps {
   showText?: boolean;
 }
 
-export function Logo({ href = "/dashboard/my-forms", className, showText = true }: LogoProps) {
+export function Logo({ href = "/dashboard", className, showText = true }: LogoProps) {
   return (
     <Link
       href={href}
