@@ -13,8 +13,8 @@ import { Save, Send, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input'; 
-import { Textarea } from '@/components/ui/textarea'; 
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { collection, addDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
@@ -37,7 +37,7 @@ export default function CreateFormPage() {
 
 
   const handleAddField = useCallback((fieldType: string) => {
-    if (isSaving) return; // Prevent adding fields during save
+    if (isSaving) return;
     const newField: FieldConfig = {
       id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       type: fieldType,
@@ -112,14 +112,14 @@ export default function CreateFormPage() {
         submissionsCount: 0,
         createdAt: serverTimestamp() as Timestamp,
         lastModified: serverTimestamp() as Timestamp,
-        isPublic: false, 
-        tags: [], 
+        isPublic: false,
+        tags: [],
       });
       toast({
         title: `Form ${status === 'Draft' ? 'Saved as Draft' : 'Published'}`,
         description: `Your form "${formTitle}" has been successfully ${status === 'Draft' ? 'saved' : 'published'}.`,
       });
-      router.push(`/dashboard/my-forms/${docRef.id}/edit`); 
+      router.push(`/dashboard/my-forms/${docRef.id}/edit`);
     } catch (error) {
       console.error("Error saving form: ", error);
       toast({
@@ -133,7 +133,7 @@ export default function CreateFormPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
+    <div className="flex flex-col h-screen"> {/* Use h-screen for full viewport height */}
       <PageHeader
         title="Create New Form"
         description="Design and configure your new form."
@@ -144,20 +144,20 @@ export default function CreateFormPage() {
               <Label htmlFor="preview-mode">Preview Mode</Label>
             </div>
             <Separator orientation="vertical" className="h-6" />
-            <Button 
+            <Button
               data-testid="create-form-save-draft-button"
-              variant="secondary" 
-              size="sm" 
-              onClick={() => handleSaveForm('Draft')} 
+              variant="secondary"
+              size="sm"
+              onClick={() => handleSaveForm('Draft')}
               disabled={isSaving}
             >
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Draft
             </Button>
-            <Button 
+            <Button
               data-testid="create-form-publish-button"
-              size="sm" 
-              onClick={() => handleSaveForm('Published')} 
+              size="sm"
+              onClick={() => handleSaveForm('Published')}
               disabled={isSaving}
             >
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
@@ -167,8 +167,10 @@ export default function CreateFormPage() {
         }
       />
 
-      <div className="flex-1 flex flex-col overflow-y-auto min-h-0">
-        <div className="p-6 space-y-4 border-b shrink-0"> {/* Changed flex-shrink-0 */}
+      {/* This container now flexes to fill remaining height and manages its own overflow if needed */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto"> {/* Added overflow-y-auto here */}
+        {/* Form inputs section */}
+        <div className="p-6 space-y-4 border-b shrink-0">
           <div>
             <Label htmlFor="formTitle">Form Title</Label>
             <Input
@@ -206,6 +208,7 @@ export default function CreateFormPage() {
           </div>
         </div>
 
+        {/* Builder section - this will take the remaining vertical space */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
           {!isPreviewMode && (
             <div className="md:col-span-3 flex flex-col min-h-0">
@@ -223,7 +226,7 @@ export default function CreateFormPage() {
                 selectedField={selectedFieldConfig}
                 onUpdateField={handleUpdateField}
                 onDeleteField={handleDeleteField}
-                isSaving={isSaving} 
+                isSaving={isSaving}
               />
             </div>
           )}

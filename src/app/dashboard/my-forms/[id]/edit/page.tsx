@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { FormDocument } from '../page'; 
+import { FormDocument } from '../page';
 
 type FieldConfig = FormFieldData;
 
@@ -38,21 +38,21 @@ import {
 
 export default function EditFormPage() {
   const params = useParams();
-  const formId = params.id as string; 
+  const formId = params.id as string;
   const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [formFields, setFormFields] = useState<FieldConfig[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  
+
   const [formTitle, setFormTitle] = useState<string>("");
   const [formDescription, setFormDescription] = useState<string>("");
   const [intendedUseCase, setIntendedUseCase] = useState<string>("");
   const [currentStatus, setCurrentStatus] = useState<'Draft' | 'Published' | 'Archived'>('Draft');
   const [isPublic, setIsPublic] = useState<boolean>(false);
   const [tags, setTags] = useState<string[]>([]);
-  
+
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -68,7 +68,7 @@ export default function EditFormPage() {
 
   useEffect(() => {
     if (!formId || !currentUser) {
-        if (!formId) router.push('/dashboard/my-forms'); 
+        if (!formId) router.push('/dashboard/my-forms');
         return;
     };
 
@@ -189,13 +189,13 @@ export default function EditFormPage() {
     const currentTags = tempTagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
 
     const updateData: Partial<FormDocument> = {
-      title: formTitle, 
+      title: formTitle,
       description: formDescription,
       intendedUseCase: intendedUseCase,
       formConfiguration: formConfiguration,
       lastModified: serverTimestamp() as Timestamp,
-      isPublic: isPublic, 
-      tags: tags, 
+      isPublic: isPublic,
+      tags: tags,
     };
 
     if (newStatus) {
@@ -205,8 +205,8 @@ export default function EditFormPage() {
     try {
       await updateDoc(formDocRef, updateData);
       if (newStatus) setCurrentStatus(newStatus);
-      
-      setTags(currentTags); 
+
+      setTags(currentTags);
       setIsPublic(tempIsPublic);
 
       toast({
@@ -239,15 +239,15 @@ export default function EditFormPage() {
     setIntendedUseCase(tempIntendedUseCase);
     setIsPublic(tempIsPublic);
     setTags(tempTagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== ''));
-    
+
     setIsSettingsDialogOpen(false);
-    handleSaveChanges(); 
+    handleSaveChanges();
   };
 
 
   if (isLoading) {
      return (
-      <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
+      <div className="flex flex-col h-screen">
         <PageHeader title="Loading Form..." description="Please wait while we fetch your form details." />
         <div className="flex-grow flex items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -258,7 +258,7 @@ export default function EditFormPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-theme(spacing.28))]">
+      <div className="flex flex-col items-center justify-center h-screen">
          <PageHeader title="Error Loading Form" description={error} />
           <Button variant="outline" asChild>
             <Link href="/dashboard/my-forms">Back to My Forms</Link>
@@ -270,7 +270,7 @@ export default function EditFormPage() {
   const pageTitle = formTitle || "Untitled Form";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.28))]">
+    <div className="flex flex-col h-screen"> {/* Use h-screen for full viewport height */}
       <PageHeader
         title={`Edit: ${pageTitle}`}
         description={`Form ID: ${formId}. Current Status: ${currentStatus}${isPublic ? ' (Public)' : ''}`}
@@ -351,7 +351,8 @@ export default function EditFormPage() {
         }
       />
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0"> 
+      {/* This container now flexes to fill remaining height */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 min-h-0">
         {!isPreviewMode && (
           <div className="md:col-span-3 flex flex-col min-h-0">
             <FieldPalette onAddField={handleAddField} isSaving={isSaving}/>
