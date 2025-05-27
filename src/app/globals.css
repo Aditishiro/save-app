@@ -8,7 +8,7 @@ body {
 
 @layer base {
   :root {
-    /* Core Dark Theme based on image */
+    /* Core Dark Theme (Neon) */
     --background: 0 0% 0%; /* Black */
     --foreground: 0 0% 100%; /* White */
 
@@ -19,54 +19,55 @@ body {
     --popover-foreground: 0 0% 100%; /* White */
 
     /* Primary for main actions - Neon Purple */
-    --primary: 280 100% 50%; /* Neon Purple (e.g., #AD00FF) */
-    --primary-foreground: 0 0% 100%; /* White text on purple */
+    --primary: 280 100% 50%; 
+    --primary-foreground: 0 0% 100%; 
 
     /* Secondary for less prominent elements or backgrounds */
-    --secondary: 0 0% 12%;       /* Dark Gray (e.g., #1F1F1F) */
-    --secondary-foreground: 0 0% 85%; /* Light gray text on dark secondary */
+    --secondary: 0 0% 12%;       /* Dark Gray */
+    --secondary-foreground: 0 0% 85%; 
 
-    --muted: 0 0% 15%; /* Slightly lighter dark gray for muted elements */
-    --muted-foreground: 0 0% 65%; /* Medium-Light Gray for muted text */
+    --muted: 0 0% 15%; 
+    --muted-foreground: 0 0% 65%; 
 
     /* Accent for highlights, icons - Lime Green */
-    --accent: 119 100% 55%;           /* Lime Green (e.g., #3EFF3A, slightly toned for UI) */
-    --accent-foreground: 0 0% 0%;  /* Black text for contrast on lime accent */
+    --accent: 119 100% 55%;           
+    --accent-foreground: 0 0% 0%;  
 
-    --destructive: 0 75% 55%;       /* Brighter Red for dark mode */
+    --destructive: 0 75% 55%;       
     --destructive-foreground: 0 0% 100%; 
 
-    --success: 120 70% 50%;          /* Brighter Green for dark mode */
-    --success-foreground: 0 0% 0%; /* Black text on success green */
+    --success: 120 70% 50%;          
+    --success-foreground: 0 0% 0%; 
 
-    --border: 0 0% 20%; /* Dark Gray border, visible on black/dark gray */
-    --input: 0 0% 10%;  /* Darker gray input background */
-    --ring: 119 100% 55%; /* Lime green for focus rings, matching accent */
+    --border: 0 0% 20%; 
+    --input: 0 0% 10%;  
+    --ring: 119 100% 55%; 
 
-    --radius: 0.5rem; /* 8px - results in 6px for rounded-md */
+    --radius: 0.5rem;
     
-    /* Sidebar variables */
-    --sidebar-background: 0 0% 3%; /* Very dark, almost black */
-    --sidebar-foreground: 119 100% 60%; /* Lime green for icons/text */
+    /* Sidebar variables - Black & White Theme */
+    --sidebar-background: 0 0% 0%; /* Black */
+    --sidebar-foreground: 0 0% 100%; /* White - for default text & icons */
     
-    --sidebar-primary: 280 100% 50%; /* Neon purple for active item background */
-    --sidebar-primary-foreground: 0 0% 100%; /* White text for active item on purple */
+    --sidebar-primary: 0 0% 20%; /* Dark Gray - Active item background */
+    --sidebar-primary-foreground: 0 0% 100%; /* White - Active item text/icon */
 
-    --sidebar-accent: 0 0% 10%; /* Darker gray for hover background */
-    --sidebar-accent-foreground: 119 100% 70%; /* Brighter lime for hover text */
+    --sidebar-accent: 0 0% 12%; /* Muted Gray - Hover item background */
+    --sidebar-accent-foreground: 0 0% 100%; /* White - Hover item text/icon */
     
-    --sidebar-border: 0 0% 15%; /* Subtle border for sidebar elements */
-    --sidebar-ring: 119 100% 60%; /* Lime green for focus ring within sidebar */
+    --sidebar-border: 0 0% 15%; /* Dark Gray - Subtle border for sidebar elements */
+    --sidebar-ring: 0 0% 100%; /* White - Focus ring within sidebar */
 
+    /* Header variables */
     --header-background: 0 0% 5%; /* Very Dark for header */
     --header-foreground: 0 0% 100%; /* White text for header */
 
     /* Chart colors will need significant adjustment for a neon theme if used */
-    --chart-1: 280 100% 60%; /* Brighter Purple */
-    --chart-2: 119 100% 50%; /* Lime Green */
-    --chart-3: 210 100% 60%; /* Bright Blue/Cyan */
-    --chart-4: 60 100% 55%;  /* Bright Yellow */
-    --chart-5: 0 100% 60%;   /* Bright Red/Orange */
+    --chart-1: 280 100% 60%; 
+    --chart-2: 119 100% 50%; 
+    --chart-3: 210 100% 60%; 
+    --chart-4: 60 100% 55%;  
+    --chart-5: 0 100% 60%;   
   }
 
 }
@@ -80,29 +81,22 @@ body {
   }
 }
 
-/* Custom styles for sidebar active items to use new accent color */
+/* Custom styles for sidebar active items and icons */
 @layer components {
   [data-sidebar=menu-button][data-active=true] {
     background-color: hsl(var(--sidebar-primary)) !important;
     color: hsl(var(--sidebar-primary-foreground)) !important;
   }
   [data-sidebar=menu-button][data-active=true] svg {
-    color: hsl(var(--sidebar-primary-foreground)) !important; /* Ensure icon color matches text */
+    color: hsl(var(--sidebar-primary-foreground)) !important; /* Icon color for active item */
   }
   
-  /* Ensure other sidebar icons use the sidebar foreground color (lime) */
+  /* Default sidebar icon color */
   [data-sidebar=menu-button] svg {
-    color: hsl(var(--sidebar-foreground));
+    color: hsl(var(--sidebar-foreground)); /* Default icon color (white) */
   }
+  /* Sidebar icon color on hover */
   [data-sidebar=menu-button]:hover svg {
-     color: hsl(var(--sidebar-accent-foreground));
-  }
-
-  /* Style specific icons if needed, e.g., dashboard header icons */
-  /* .header-icon class removed as it was causing issues and styling will be direct */
-  
-  /* For specific lime icons outside sidebar if not covered by --accent or text-accent */
-  .icon-lime {
-    color: hsl(var(--accent));
+     color: hsl(var(--sidebar-accent-foreground)); /* Icon color on hover (white) */
   }
 }
