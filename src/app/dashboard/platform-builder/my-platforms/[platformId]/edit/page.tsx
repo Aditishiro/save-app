@@ -162,7 +162,7 @@ export default function EditPlatformPage() {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [platformId, currentUser, router, toast]);
+  }, [platformId, currentUser, router, toast, isLoading]); // Added isLoading to dependency array as it's checked within the effect
 
   // Fetch Global Component Definitions
   useEffect(() => {
@@ -184,12 +184,17 @@ export default function EditPlatformPage() {
       setComponentInstances([]);
       setCurrentLayout(null);
       if (platform && platform.hasOwnProperty('defaultLayoutId') && !platform.defaultLayoutId) {
-        setIsLoading(false);
+        // This means platform loaded, but it explicitly has no defaultLayoutId
+        // This is not an error state, but a state of having no layout to load components from.
+        setIsLoading(false); 
       }
       return;
     }
     
-    if(!currentLayout && componentInstances.length === 0) setIsLoading(true);
+    // Set loading to true only if we are actually going to fetch
+    if(!currentLayout || currentLayout.id !== platform.defaultLayoutId) {
+        setIsLoading(true);
+    }
 
 
     const layoutDocRef = doc(db, 'platforms', platformId, 'layouts', platform.defaultLayoutId);
@@ -227,7 +232,7 @@ export default function EditPlatformPage() {
       setIsLoading(false);
     });
     return () => unsubscribeLayout(); 
-  }, [platformId, platform?.defaultLayoutId, toast]); 
+  }, [platformId, platform?.defaultLayoutId, toast, currentLayout]); // Added currentLayout to dependency array
 
 
   const handleSaveChanges = async () => {
@@ -400,7 +405,7 @@ export default function EditPlatformPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Link>
               </Button>
-              <Button onClick={handleSaveChanges} disabled={isSaving} size="sm">
+              <Button data-testid="platform-builder-save-details-button" onClick={handleSaveChanges} disabled={isSaving} size="sm">
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Details
               </Button>
                <Button data-testid="platform-builder-live-preview-button" size="sm" variant="secondary" asChild>

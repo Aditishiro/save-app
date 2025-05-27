@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +52,7 @@ interface CreateGlobalComponentFormProps {
   setTemplate: (value: string) => void;
   
   isSaving: boolean;
-  handleSubmit: (e: React.FormEvent) => Promise<void>;
+  handleSubmit: (e?: React.FormEvent) => Promise<void>; // Allow calling without event
 }
 
 const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
@@ -78,8 +79,6 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
 
   useEffect(() => {
     if (selectedTemplateId === 'custom') {
-       // This part specifically ensures textareas are reset if 'custom' is re-selected,
-       // relying on parent's resetForm for initial blank state when dialog opens.
        setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
        setTemplate(initialTemplateString);
     } else {
@@ -100,7 +99,8 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
         setTemplate(selected.templateString || initialTemplateString);
       }
     }
-  }, [selectedTemplateId, setComponentId, setDisplayName, setComponentType, setDescription, setIconUrl, setTagsString, setConfigurablePropertiesJson, setTemplate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId]); // Removed setters from dep array as they are stable
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -112,8 +112,8 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="overflow-y-auto"> {/* No flex-1 needed, grid row 1fr handles expansion */}
-          <form onSubmit={handleSubmit} className="space-y-4 p-6">
+        <ScrollArea className="overflow-y-auto">
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e);}} className="space-y-4 p-6">
             <div>
               <Label htmlFor="templateSelect">Load Template</Label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId} disabled={isSaving}>
@@ -155,7 +155,7 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="iconUrl">Icon URL (Optional)</Label>
-                <Input id="iconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://example.com/icon.png" disabled={isSaving} className="mt-1" />
+                <Input id="iconUrl" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://placehold.co/40x40.png" disabled={isSaving} className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="tags">Tags (Optional, Comma-separated)</Label>
@@ -200,13 +200,13 @@ const CreateGlobalComponentForm: React.FC<CreateGlobalComponentFormProps> = ({
           </form>
         </ScrollArea>
 
-        <DialogFooter className="p-6 pt-4 border-t bg-background"> {/* Removed sticky, z-index. Grid handles positioning. */}
+        <DialogFooter className="p-6 pt-4 border-t bg-background">
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isSaving}>
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit" onClick={handleSubmit} disabled={isSaving}>
+          <Button type="button" onClick={() => handleSubmit()} disabled={isSaving}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save Component
           </Button>
@@ -232,29 +232,28 @@ export default function CreateGlobalComponentClient() {
   const [configurablePropertiesJson, setConfigurablePropertiesJson] = useState(initialConfigurablePropertiesJson);
   const [template, setTemplate] = useState(initialTemplateString);
 
-  const resetForm = (isOpening = false) => {
+  const resetForm = useCallback((isOpening = false) => {
     setComponentId('');
     setDisplayName('');
     setComponentType('');
     setDescription('');
     setIconUrl('');
     setTagsString('');
-    // Only reset textareas if explicitly opening, to preserve user input if they just re-select "custom" template
     if(isOpening) { 
       setConfigurablePropertiesJson(initialConfigurablePropertiesJson);
       setTemplate(initialTemplateString);
     }
-  };
+  }, []); // Add empty dependency array
 
-  const handleOpenChangeWrapper = (open: boolean) => {
+  const handleOpenChangeWrapper = useCallback((open: boolean) => {
     if (open) {
-      resetForm(true); // Reset form when dialog is opened
+      resetForm(true); 
     }
     setIsOpen(open);
-  };
+  }, [resetForm]); // Add resetForm to dependency array
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => { // Optional event param
+    if (e) e.preventDefault();
     if (!componentId.trim() || !displayName.trim() || !componentType.trim()) {
       toast({
         title: 'Validation Error',
@@ -293,11 +292,10 @@ export default function CreateGlobalComponentClient() {
       configurablePropertiesSchema: parsedConfigurableProperties, 
       template: template.trim() || undefined,
       tags: currentTags.length > 0 ? currentTags : undefined,
-      // createdAt and lastModified will be set by serverTimestamp
     };
 
     try {
-      const componentDocRef = doc(db, 'components', newComponentDef.id!); // Use the user-provided ID
+      const componentDocRef = doc(db, 'components', newComponentDef.id!); 
       await setDoc(componentDocRef, {
         ...newComponentDef,
         createdAt: serverTimestamp(),
@@ -308,13 +306,13 @@ export default function CreateGlobalComponentClient() {
         title: 'Global Component Created',
         description: `Component "${newComponentDef.displayName}" has been saved.`,
       });
-      handleOpenChangeWrapper(false); // Close dialog on success
+      handleOpenChangeWrapper(false); 
     } catch (error) {
       console.error('Error creating global component:', error);
       let errorMessage = 'Could not create global component. Check console for details.';
       if (error instanceof Error && error.message.includes("Missing or insufficient permissions")) {
           errorMessage = "Permission denied. Ensure you have rights to write to the 'components' collection.";
-      } else if (error instanceof Error && error.message.toLowerCase().includes("document already exists")) {
+      } else if (error instanceof Error && (error.message.toLowerCase().includes("document already exists") || (error as any).code === 'already-exists')) { // Check for Firestore specific error code
           errorMessage = `A component with ID "${newComponentDef.id}" already exists. Please use a unique ID.`;
       }
       toast({
@@ -329,7 +327,7 @@ export default function CreateGlobalComponentClient() {
   
   return (
     <>
-      <Button size="sm" onClick={() => handleOpenChangeWrapper(true)} disabled={isSaving}>
+      <Button data-testid="create-global-comp-trigger-button" size="sm" onClick={() => handleOpenChangeWrapper(true)} disabled={isSaving}>
         <PackagePlus className="mr-2 h-4 w-4" /> Create New Global Component
       </Button>
       
@@ -350,4 +348,3 @@ export default function CreateGlobalComponentClient() {
     </>
   );
 }
-
