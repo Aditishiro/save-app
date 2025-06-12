@@ -333,12 +333,12 @@ export default function EditFormPage() {
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
             </Button>
             {currentStatus !== 'Published' && (
-                 <Button data-testid="edit-form-publish-button" size="sm" onClick={() => handleSaveChanges('Published')} disabled={isSaving}>
+                 <Button id="publishFormButton" data-testid="edit-form-publish-button" size="sm" onClick={() => handleSaveChanges('Published')} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />} Publish
                 </Button>
             )}
             {currentStatus === 'Published' && (
-                 <Button data-testid="edit-form-revert-draft-button" variant="outline" size="sm" onClick={() => handleSaveChanges('Draft')} disabled={isSaving}>
+                 <Button id="revertToDraftFormButton" data-testid="edit-form-revert-draft-button" variant="outline" size="sm" onClick={() => handleSaveChanges('Draft')} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />} Revert to Draft
                 </Button>
             )}
@@ -377,3 +377,5 @@ export default function EditFormPage() {
     </div>
   );
 }
+
+    
