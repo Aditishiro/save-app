@@ -47,34 +47,50 @@ export default function LoginPage() {
       }
     } catch (authError: any) {
       console.error("Firebase Auth Error:", authError);
+      const errorMessageOriginal = String(authError.message || "");
+      const errorMessageLower = errorMessageOriginal.toLowerCase();
+      const errorCode = authError.code ? String(authError.code) : "";
+
+      console.error("Firebase Auth Error Code:", errorCode);
+      console.error("Firebase Auth Error Message:", errorMessageLower);
+
       let friendlyMessage = "An unexpected error occurred. Please try again.";
-      switch (authError.code) {
-        case 'auth/invalid-email':
-          friendlyMessage = "The email address is not valid.";
-          break;
-        case 'auth/user-disabled':
-          friendlyMessage = "This user account has been disabled.";
-          break;
-        case 'auth/user-not-found':
-          friendlyMessage = "No account found with this email address.";
-          break;
-        case 'auth/wrong-password':
-          friendlyMessage = "Incorrect password. Please try again.";
-          break;
-        case 'auth/invalid-credential':
-           friendlyMessage = "Invalid email or password. Please check your credentials and try again.";
-          break;
-        case 'auth/email-already-in-use':
-          friendlyMessage = "This email is already in use. Try signing in or use a different email.";
-          break;
-        case 'auth/weak-password':
-          friendlyMessage = "The password is too weak. It must be at least 6 characters long.";
-          break;
-        default:
-          if (authError.message && !authError.message.toLowerCase().includes('internal-error') && !authError.message.toLowerCase().includes('network-request-failed')) {
-            friendlyMessage = authError.message;
-          }
-          break;
+
+      if (errorCode.startsWith('auth/visibility-check-was-unavailable') || errorMessageLower.includes("visibility-check-was-unavailable")) {
+        friendlyMessage = "Login temporarily unavailable (Firebase code: auth/visibility-check). This can be caused by network issues or browser extensions (like ad blockers/privacy tools). Please: 1. Check your internet connection. 2. Try disabling browser extensions. 3. Try a different browser or an incognito/private window. If the problem continues, please contact support.";
+      } else {
+        switch (errorCode) {
+          case 'auth/invalid-email':
+            friendlyMessage = "The email address is not valid.";
+            break;
+          case 'auth/user-disabled':
+            friendlyMessage = "This user account has been disabled.";
+            break;
+          case 'auth/user-not-found':
+            friendlyMessage = "No account found with this email address.";
+            break;
+          case 'auth/wrong-password':
+            friendlyMessage = "Incorrect password. Please try again.";
+            break;
+          case 'auth/invalid-credential':
+            friendlyMessage = "Invalid email or password. Please check your credentials and try again.";
+            break;
+          case 'auth/email-already-in-use':
+            friendlyMessage = "This email is already in use. Try signing in or use a different email.";
+            break;
+          case 'auth/weak-password':
+            friendlyMessage = "The password is too weak. It must be at least 6 characters long.";
+            break;
+          default:
+            // Use a more generic message for non-specific internal or network errors
+            if (errorMessageLower.includes('internal-error') || errorMessageLower.includes('network-request-failed')) {
+                friendlyMessage = "A network error occurred or there was an internal server issue. Please check your connection and try again.";
+            } else if (errorMessageOriginal) {
+                // Fallback to original message if it's somewhat understandable and not too generic
+                friendlyMessage = errorMessageOriginal;
+            }
+            break;
+        }
       }
       setError(friendlyMessage);
     } finally {
@@ -111,6 +127,7 @@ export default function LoginPage() {
         });
         setShowPasswordReset(false);
         setResetEmail('');
+        // No need to set error here as toast gives feedback
       } else {
          setError(friendlyMessage);
       }
