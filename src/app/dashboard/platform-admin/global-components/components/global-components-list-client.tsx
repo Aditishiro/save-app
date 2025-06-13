@@ -44,7 +44,8 @@ export default function GlobalComponentsListClient() {
     setError(null);
     try {
       const componentsCollectionRef = collection(db, 'components');
-      const q = query(componentsCollectionRef, orderBy('displayName', 'asc'));
+      // Temporarily removed orderBy for diagnostics
+      const q = query(componentsCollectionRef); 
       const querySnapshot = await getDocs(q);
       const fetchedComponents = querySnapshot.docs.map((doc) => {
         const data = doc.data();
@@ -57,6 +58,8 @@ export default function GlobalComponentsListClient() {
             : data.configurablePropertiesSchema,
         } as GlobalComponentDefinition;
       });
+      // If still not ordered by displayName, you might want to sort client-side for now if the above works
+      fetchedComponents.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
       setComponents(fetchedComponents);
     } catch (err) {
       console.error("Error fetching global components: ", err);
@@ -73,6 +76,7 @@ export default function GlobalComponentsListClient() {
 
   useEffect(() => {
     fetchComponents();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDeleteComponent = async (componentId: string, componentName: string) => {
