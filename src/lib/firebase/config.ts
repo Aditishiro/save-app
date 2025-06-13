@@ -1,7 +1,7 @@
 
 // src/lib/firebase/config.ts
 
-// Hardcoded Firebase configuration.
+// Hardcoded Firebase configuration based on user's provided snippet.
 // It is STRONGLY recommended to use environment variables for production deployments
 // to avoid exposing sensitive keys in client-side code.
 
@@ -9,7 +9,7 @@ export const firebaseConfig = {
   apiKey: "AIzaSyC_ps8tdba2U3YwZ1WIpFJpcvNo3PjDSKY",
   authDomain: "formflow-finance-974db.firebaseapp.com",
   projectId: "formflow-finance-974db",
-  storageBucket: "formflow-finance-974db.appspot.com",
+  storageBucket: "formflow-finance-974db.firebasestorage.app", // Updated to user-provided value
   messagingSenderId: "1055792580036",
   appId: "1:1055792580036:web:a9d4515d28625189699091",
   measurementId: "G-DXX3V3DRS1"
