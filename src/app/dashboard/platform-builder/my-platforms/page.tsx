@@ -33,33 +33,28 @@ export default function MyPlatformsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (currentUser) {
-      setIsLoading(true);
-      setError(null);
-      const platformsCollectionRef = collection(db, 'platforms');
-      // For now, tenantId is currentUser.uid
-      const q = query(platformsCollectionRef, where('tenantId', '==', currentUser.uid), orderBy('lastModified', 'desc'));
+    // In public mode, list all platforms regardless of tenantId
+    setIsLoading(true);
+    setError(null);
+    const platformsCollectionRef = collection(db, 'platforms');
+    const q = query(platformsCollectionRef, orderBy('lastModified', 'desc'));
 
-      getDocs(q)
-        .then((querySnapshot) => {
-          const fetchedPlatforms = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          } as PlatformData));
-          setPlatforms(fetchedPlatforms);
-        })
-        .catch((err) => {
-          console.error("Error fetching platforms: ", err);
-          setError("Failed to fetch platforms. Please try again.");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      setPlatforms([]);
-      setIsLoading(false);
-    }
-  }, [currentUser]);
+    getDocs(q)
+      .then((querySnapshot) => {
+        const fetchedPlatforms = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as PlatformData));
+        setPlatforms(fetchedPlatforms);
+      })
+      .catch((err) => {
+        console.error("Error fetching platforms: ", err);
+        setError("Failed to fetch platforms. Please try again.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   const handleDeletePlatform = async (platformId: string, platformName: string) => {
     try {
@@ -88,8 +83,8 @@ export default function MyPlatformsPage() {
     return (
       <>
         <PageHeader
-          title="My Platforms"
-          description="Manage your custom-built platforms."
+          title="All Platforms (Public Mode)"
+          description="Manage all custom-built platforms."
           actions={
             <Button asChild disabled>
               <Link href="/dashboard/platform-builder/my-platforms/create">
@@ -100,7 +95,7 @@ export default function MyPlatformsPage() {
         />
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Loading your platforms...</span>
+          <span className="ml-2 text-muted-foreground">Loading platforms...</span>
         </div>
       </>
     );
@@ -134,8 +129,8 @@ export default function MyPlatformsPage() {
   return (
     <>
       <PageHeader
-        title="My Platforms"
-        description="Manage your custom-built platforms."
+        title="All Platforms (Public Mode)"
+        description="Manage all custom-built platforms."
         actions={
           <Button asChild>
             <Link href="/dashboard/platform-builder/my-platforms/create">
@@ -164,7 +159,7 @@ export default function MyPlatformsPage() {
             <Card key={platform.id} className="flex flex-col shadow-md">
               <CardHeader>
                 <CardTitle className="text-lg">{platform.name}</CardTitle>
-                <CardDescription>
+                 <CardDescription>
                   Status:{" "}
                   <Badge
                     variant={
@@ -182,10 +177,11 @@ export default function MyPlatformsPage() {
                   </Badge>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow space-y-2"> {/* Increased spacing slightly */}
+              <CardContent className="flex-grow space-y-2">
+                <p className="text-sm text-muted-foreground">Tenant ID: {platform.tenantId}</p>
                 {platform.description && (
                   <p 
-                    className="text-sm text-muted-foreground line-clamp-2" // Use line-clamp for truncation
+                    className="text-sm text-muted-foreground line-clamp-2"
                     title={platform.description}
                   >
                     {platform.description}
@@ -202,7 +198,7 @@ export default function MyPlatformsPage() {
                   </Button>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" aria-label="Preview" asChild>
-                      <Link href={`/platforms/${platform.id}`} target="_blank"> {/* Assuming live platforms are at /platforms/:id */}
+                      <Link href={`/platforms/${platform.id}`} target="_blank">
                         <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
                       </Link>
                     </Button>

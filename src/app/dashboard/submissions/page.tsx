@@ -39,32 +39,28 @@ export default function SubmissionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (currentUser) {
-      setIsLoading(true);
-      setError(null);
-      const submissionsCollectionRef = collection(db, 'submissions');
-      const q = query(submissionsCollectionRef, orderBy('submissionDate', 'desc'), limit(50));
+    // In public mode, list all submissions
+    setIsLoading(true);
+    setError(null);
+    const submissionsCollectionRef = collection(db, 'submissions');
+    const q = query(submissionsCollectionRef, orderBy('submissionDate', 'desc'), limit(50));
 
-      getDocs(q)
-        .then((querySnapshot) => {
-          const fetchedSubmissions = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          } as SubmissionData));
-          setSubmissions(fetchedSubmissions);
-        })
-        .catch((err) => {
-          console.error("Error fetching submissions: ", err);
-          setError("Failed to fetch submissions. Please try again.");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      setSubmissions([]);
-      setIsLoading(false);
-    }
-  }, [currentUser]);
+    getDocs(q)
+      .then((querySnapshot) => {
+        const fetchedSubmissions = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as SubmissionData));
+        setSubmissions(fetchedSubmissions);
+      })
+      .catch((err) => {
+        console.error("Error fetching submissions: ", err);
+        setError("Failed to fetch submissions. Please try again.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   const handleViewSubmission = (submission: SubmissionData) => {
     setSelectedSubmission(submission);
@@ -130,8 +126,8 @@ export default function SubmissionsPage() {
   return (
     <>
       <PageHeader
-        title="Form Submissions"
-        description="View and manage data collected through your forms."
+        title="All Submissions (Public Mode)"
+        description="View and manage all data collected through forms."
         actions={
           <Button variant="outline" disabled>
             <Download className="mr-2 h-4 w-4" /> Export All (CSV)
@@ -168,7 +164,7 @@ export default function SubmissionsPage() {
                 <TableCell className="font-medium truncate max-w-[150px]" title={submission.id}>{submission.id}</TableCell>
                 <TableCell className="truncate max-w-[200px]" title={submission.formTitle}>{submission.formTitle || 'N/A'}</TableCell>
                 <TableCell className="truncate max-w-[150px]" title={submission.submitterId}>
-                  {submission.submitterId === currentUser?.uid ? "You" : (submission.submitterId || 'anonymous')}
+                  {submission.submitterId}
                 </TableCell>
                 <TableCell>{formatDate(submission.submissionDate)}</TableCell>
                 <TableCell className="text-right">

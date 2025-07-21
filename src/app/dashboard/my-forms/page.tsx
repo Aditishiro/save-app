@@ -49,32 +49,28 @@ export default function MyFormsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (currentUser) {
-      setIsLoading(true);
-      setError(null);
-      const formsCollectionRef = collection(db, 'forms');
-      const q = query(formsCollectionRef, where('ownerId', '==', currentUser.uid), orderBy('lastModified', 'desc'));
+    // In public mode, we list all forms, not just those by a specific user.
+    setIsLoading(true);
+    setError(null);
+    const formsCollectionRef = collection(db, 'forms');
+    const q = query(formsCollectionRef, orderBy('lastModified', 'desc'));
 
-      getDocs(q)
-        .then((querySnapshot) => {
-          const fetchedForms = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          } as FormDocument));
-          setForms(fetchedForms);
-        })
-        .catch((err) => {
-          console.error("Error fetching forms: ", err);
-          setError("Failed to fetch forms. Please try again.");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      setForms([]);
-      setIsLoading(false);
-    }
-  }, [currentUser]);
+    getDocs(q)
+      .then((querySnapshot) => {
+        const fetchedForms = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as FormDocument));
+        setForms(fetchedForms);
+      })
+      .catch((err) => {
+        console.error("Error fetching forms: ", err);
+        setError("Failed to fetch forms. Please try again.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   const handleDeleteForm = async (formId: string) => {
     try {
@@ -149,8 +145,8 @@ export default function MyFormsPage() {
   return (
     <>
       <PageHeader
-        title="My Forms"
-        description="Create, manage, and publish your data collection forms."
+        title="All Forms (Public Mode)"
+        description="Create, manage, and publish data collection forms."
         actions={
           <Button asChild>
             <Link href="/dashboard/my-forms/create">
@@ -203,6 +199,7 @@ export default function MyFormsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow space-y-1">
+                 <p className="text-sm text-muted-foreground">Owner ID: {form.ownerId}</p>
                 <p className="text-sm text-muted-foreground">Last Modified: {formatDate(form.lastModified)}</p>
                 <p className="text-sm text-muted-foreground">Submissions: {form.submissionsCount}</p>
                 {form.intendedUseCase && <p className="text-xs text-muted-foreground mt-1 truncate" title={form.intendedUseCase}>Use Case: {form.intendedUseCase}</p>}

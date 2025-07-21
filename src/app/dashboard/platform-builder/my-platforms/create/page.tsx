@@ -45,20 +45,18 @@ export default function CreatePlatformPage() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const handleSavePlatform = async () => {
-    if (!currentUser) {
-      toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
-      return;
-    }
+    const tenantId = currentUser?.uid || 'public-user'; // Use 'public-user' if not logged in
+
     if (!platformName.trim()) {
       toast({ title: "Validation Error", description: "Platform name cannot be empty.", variant: "destructive" });
       return;
     }
     if (!selectedPurpose) {
-      toast({ title: "Validation Error", description: "Please select a platform purpose.", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Please select a platform purpose.", variant = "destructive" });
       return;
     }
     if (selectedPurpose === "other" && !customPurposeDescription.trim()) {
-      toast({ title: "Validation Error", description: "Please specify the platform purpose if 'Other' is selected.", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Please specify the platform purpose if 'Other' is selected.", variant = "destructive" });
       return;
     }
 
@@ -69,13 +67,14 @@ export default function CreatePlatformPage() {
 
     try {
       const docRef = await addDoc(collection(db, "platforms"), {
-        tenantId: currentUser.uid, // Using UID as tenantId proxy for now
+        tenantId: tenantId, 
         name: platformName.trim(),
         description: platformDescription.trim(),
         platformPurpose: finalPlatformPurpose,
-        status: 'draft', // Default status
+        status: 'draft',
         createdAt: serverTimestamp() as Timestamp,
         lastModified: serverTimestamp() as Timestamp,
+        platformAdmins: currentUser ? [currentUser.uid] : [], // Assign admin only if logged in
       });
       toast({
         title: "Platform Created",

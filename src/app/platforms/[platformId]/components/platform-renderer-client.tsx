@@ -15,7 +15,7 @@ interface PlatformRendererClientProps {
 }
 
 export default function PlatformRendererClient({ platformId }: PlatformRendererClientProps) {
-  const { currentUser, loading: authLoading } = useAuth();
+  const { currentUser } = useAuth(); // No authLoading in public-only mode
   const [platform, setPlatform] = useState<PlatformData | null>(null);
   const [layout, setLayout] = useState<PlatformLayout | null>(null);
   const [componentInstances, setComponentInstances] = useState<PlatformComponentInstance[]>([]);
@@ -23,11 +23,6 @@ export default function PlatformRendererClient({ platformId }: PlatformRendererC
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) {
-      setIsLoading(true); // Keep loading if auth state is not yet determined
-      return;
-    }
-
     if (!platformId) {
       setError("Platform ID is missing.");
       setIsLoading(false);
@@ -42,42 +37,31 @@ export default function PlatformRendererClient({ platformId }: PlatformRendererC
       if (docSnap.exists()) {
         const platformData = { id: docSnap.id, ...docSnap.data() } as PlatformData;
 
-        const canViewDraft = currentUser && platformData.tenantId === currentUser.uid;
+        // In public mode, all platforms are viewable
+        setPlatform(platformData);
+        setError(null); 
 
-        if (platformData.status === 'published' || canViewDraft) {
-          setPlatform(platformData);
-          setError(null); 
-
-          if (platformData.defaultLayoutId) {
-            const layoutDocRef = doc(db, 'platforms', platformId, 'layouts', platformData.defaultLayoutId);
-            const unsubscribeLayout = onSnapshot(layoutDocRef, (layoutSnap) => {
-              if (layoutSnap.exists()) {
-                setLayout({ id: layoutSnap.id, ...layoutSnap.data() } as PlatformLayout);
-              } else {
-                setError(`Default layout "${platformData.defaultLayoutId}" not found for this platform.`);
-                setLayout(null);
-                setComponentInstances([]);
-                setIsLoading(false); // Stop loading if layout not found
-              }
-            }, (err) => {
-              console.error("Error fetching platform layout:", err);
-              setError("Failed to load platform layout.");
+        if (platformData.defaultLayoutId) {
+          const layoutDocRef = doc(db, 'platforms', platformId, 'layouts', platformData.defaultLayoutId);
+          const unsubscribeLayout = onSnapshot(layoutDocRef, (layoutSnap) => {
+            if (layoutSnap.exists()) {
+              setLayout({ id: layoutSnap.id, ...layoutSnap.data() } as PlatformLayout);
+            } else {
+              setError(`Default layout "${platformData.defaultLayoutId}" not found for this platform.`);
               setLayout(null);
               setComponentInstances([]);
-              setIsLoading(false);
-            });
-            // Return layout unsubscription, platform unsubscription is handled by main effect cleanup
-            return () => unsubscribeLayout();
-          } else {
-            setError("No default layout specified for this platform.");
+              setIsLoading(false); 
+            }
+          }, (err) => {
+            console.error("Error fetching platform layout:", err);
+            setError("Failed to load platform layout.");
             setLayout(null);
             setComponentInstances([]);
             setIsLoading(false);
-          }
+          });
+          return () => unsubscribeLayout();
         } else {
-          // Not published and not the owner/tenant admin
-          setError(`This platform "${platformData.name}" is not currently published, or you do not have permission to preview it.`);
-          setPlatform(null);
+          setError("No default layout specified for this platform.");
           setLayout(null);
           setComponentInstances([]);
           setIsLoading(false);
@@ -99,23 +83,15 @@ export default function PlatformRendererClient({ platformId }: PlatformRendererC
     });
 
     return () => unsubscribePlatform();
-  }, [platformId, authLoading, currentUser]);
+  }, [platformId]);
 
 
   useEffect(() => {
     if (!layout || !platformId) {
       setComponentInstances([]);
-      // Only set isLoading to false if we are not already in an error state from platform/layout loading
-      if (platform && !error && !layout && !authLoading) {
-         // If platform is loaded, no error, but layout is null (e.g. missing defaultLayoutId), it's effectively loaded to an error state
-         // setIsLoading(false) is handled in the platform/layout effect for these cases
-      }
       return;
     }
     
-    // Don't reset isLoading to true here if it was already set by the platform/layout effect
-    // setIsLoading(true); 
-
     const instancesQuery = query(
       collection(db, 'platforms', platformId, 'components'),
       where('layoutId', '==', layout.id),
@@ -137,9 +113,9 @@ export default function PlatformRendererClient({ platformId }: PlatformRendererC
     });
 
     return () => unsubscribeInstances();
-  }, [layout, platformId, platform, error, authLoading]);
+  }, [layout, platformId]);
 
-  if (isLoading || authLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -153,8 +129,8 @@ export default function PlatformRendererClient({ platformId }: PlatformRendererC
       <Card className="max-w-2xl mx-auto mt-10 border-destructive bg-destructive/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
-            {error.toLowerCase().includes("permission") || error.toLowerCase().includes("not logged in") ? <UserX className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}
-            Platform Access Error
+            <ShieldAlert className="h-6 w-6" />
+            Platform Error
           </CardTitle>
         </CardHeader>
         <CardContent>

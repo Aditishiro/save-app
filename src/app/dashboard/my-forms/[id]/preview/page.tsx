@@ -47,7 +47,7 @@ interface FormPreviewConfig {
 export default function FormPreviewPage() {
   const params = useParams<{ id: string }>();
   const formId = params.id;
-  const { currentUser } = useAuth(); // For recording submitter if needed
+  const { currentUser } = useAuth(); // Can still be used to associate submission if user IS logged in
   const router = useRouter();
   const { toast } = useToast();
 
@@ -70,13 +70,9 @@ export default function FormPreviewPage() {
         if (docSnap.exists()) {
           const formData = docSnap.data() as FormDocument;
 
-          // For preview, we only show published forms, or allow owner to preview drafts.
-          // This logic can be enhanced with security rules for non-owners.
-          if (formData.status !== 'Published' && formData.ownerId !== currentUser?.uid) {
-            setError("This form is not currently available for preview.");
-            toast({ title: "Preview Not Available", description: "This form is either not published or you don't have permission.", variant: "destructive" });
-            return;
-          }
+          // In public mode, anyone can view any form, even drafts.
+          // You might want to restrict this to only 'Published' forms
+          // if (formData.status !== 'Published') { ... }
           
           try {
             const parsedConfig = JSON.parse(formData.formConfiguration);
@@ -110,7 +106,7 @@ export default function FormPreviewPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [formId, currentUser, toast]);
+  }, [formId, toast]);
 
   const handleChange = (fieldId: string, value: any, type?: string) => {
     setFormValues(prev => ({ ...prev, [fieldId]: type === 'checkbox' ? (value as boolean) : value }));
@@ -148,26 +144,14 @@ export default function FormPreviewPage() {
     if (Object.keys(errors).length === 0) {
       setIsSubmitting(true);
       try {
-        // In a real app, save to a 'submissions' subcollection or dedicated collection
-        // For example: await addDoc(collection(db, 'forms', formId, 'submissions'), { ... })
-        // For now, just show a success message
-        console.log('Form Submitted Data:', {
-            formId: formConfig.id,
-            submittedBy: currentUser?.uid || 'anonymous', // Or an actual name/email if collected
-            submittedAt: serverTimestamp(), // Use serverTimestamp for actual Firestore write
-            data: formValues
-        });
-        
-        // Simulate saving to a submissions collection for the demo
         await addDoc(collection(db, 'submissions'), {
             formId: formConfig.id,
             formTitle: formConfig.title,
-            submitterId: currentUser?.uid || 'anonymous',
+            submitterId: currentUser?.uid || 'anonymous-public',
             submissionDate: serverTimestamp(),
             data: formValues,
         });
-        // Potentially increment submissionsCount on the form document (using a Firebase Function for atomicity is best)
-
+        
         toast({
           title: "Form Submitted Successfully!",
           description: "Your response has been recorded.",
@@ -223,7 +207,6 @@ export default function FormPreviewPage() {
         title={formConfig.title}
         description="This is how your form will appear to end-users."
         actions={
-          currentUser && formConfig?.id && // Only show if user is logged in and formId is available
           <Button variant="outline" asChild>
             <Link href={`/dashboard/my-forms/${formConfig.id}/edit`}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor

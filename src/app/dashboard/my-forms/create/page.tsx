@@ -85,10 +85,8 @@ export default function CreateFormPage() {
   ));
 
   const handleSaveForm = async (status: 'Draft' | 'Published') => {
-    if (!currentUser) {
-      toast({ title: "Authentication Error", description: "You must be logged in to save a form.", variant: "destructive" });
-      return;
-    }
+    const ownerId = currentUser?.uid || 'public-user'; // Use public ID if no user
+
     if (!formTitle.trim()) {
       toast({ title: "Validation Error", description: "Form title cannot be empty.", variant: "destructive" });
       return;
@@ -103,7 +101,7 @@ export default function CreateFormPage() {
 
     try {
       const docRef = await addDoc(collection(db, "forms"), {
-        ownerId: currentUser.uid,
+        ownerId: ownerId,
         title: formTitle,
         description: formDescription,
         intendedUseCase: intendedUseCase,

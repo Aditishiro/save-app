@@ -107,8 +107,8 @@ export default function EditPlatformPage() {
 
   // Fetch Platform Data
   useEffect(() => {
-    if (!platformId || !currentUser) {
-      if (!platformId && !isLoading) router.push('/dashboard/platform-builder/my-platforms');
+    if (!platformId) {
+      if (!isLoading) router.push('/dashboard/platform-builder/my-platforms');
       return;
     }
     
@@ -116,25 +116,19 @@ export default function EditPlatformPage() {
     const unsubscribe = onSnapshot(platformDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = { id: docSnap.id, ...docSnap.data() } as PlatformData;
-        if (data.tenantId !== currentUser.uid) { 
-          setError("You are not authorized to edit this platform.");
-          toast({ title: "Access Denied", description: "You do not have permission.", variant: "destructive" });
-          router.push('/dashboard/platform-builder/my-platforms');
-          setIsLoading(false); 
-          return;
-        }
+        // In public mode, we remove the tenantId check. Anyone can edit.
         setPlatform(data);
         setPlatformName(data.name);
         setPlatformDescription(data.description || "");
 
-        if (!data.defaultLayoutId && currentUser?.uid) {
+        if (!data.defaultLayoutId && platformId) {
           console.log(`Platform ${platformId} has no defaultLayoutId. Creating one.`);
           const newLayoutId = `default_layout_${Date.now()}`;
           const layoutRef = doc(db, 'platforms', platformId, 'layouts', newLayoutId);
           const newLayoutData: Omit<PlatformLayout, 'id'> = {
             name: 'Main Layout',
             platformId: platformId,
-            tenantId: currentUser.uid, // Important for multi-tenancy
+            tenantId: data.tenantId, // Preserve original tenantId or use a public one
             createdAt: serverTimestamp() as Timestamp,
             lastModified: serverTimestamp() as Timestamp,
           };
@@ -142,17 +136,13 @@ export default function EditPlatformPage() {
             updateDoc(platformDocRef, { defaultLayoutId: newLayoutId, lastModified: serverTimestamp() })
               .then(() => {
                 console.log(`Default layout ${newLayoutId} created and linked to platform ${platformId}.`);
-                // No need to set isLoading here, layout/instance effect will handle it
               })
               .catch(err => console.error("Error linking default layout:", err));
           }).catch(err => console.error("Error creating default layout document:", err));
-        } else {
-            // Only set isLoading to false here if no layout creation is triggered
-            // The layout/instance effect will set it false after its own loading
         }
       } else {
         setError("Platform with ID \"" + platformId + "\" not found.");
-        toast({ title: "Platform Not Found", variant: "destructive" });
+        toast({ title: "Platform Not Found", variant = "destructive" });
         router.push('/dashboard/platform-builder/my-platforms');
         setIsLoading(false);
       }
@@ -162,7 +152,7 @@ export default function EditPlatformPage() {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [platformId, currentUser, router, toast, isLoading]); // Added isLoading to dependency array as it's checked within the effect
+  }, [platformId, router, toast, isLoading]); 
 
   // Fetch Global Component Definitions
   useEffect(() => {
@@ -173,7 +163,7 @@ export default function EditPlatformPage() {
       setGlobalComponents(fetchedComponents);
     }, (err) => {
       console.error("Error fetching global components:", err);
-      toast({ title: "Error", description: "Could not load global components.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not load global components.", variant = "destructive" });
     });
     return () => unsubscribe();
   }, [toast]);
@@ -184,14 +174,11 @@ export default function EditPlatformPage() {
       setComponentInstances([]);
       setCurrentLayout(null);
       if (platform && platform.hasOwnProperty('defaultLayoutId') && !platform.defaultLayoutId) {
-        // This means platform loaded, but it explicitly has no defaultLayoutId
-        // This is not an error state, but a state of having no layout to load components from.
         setIsLoading(false); 
       }
       return;
     }
     
-    // Set loading to true only if we are actually going to fetch
     if(!currentLayout || currentLayout.id !== platform.defaultLayoutId) {
         setIsLoading(true);
     }
@@ -212,33 +199,33 @@ export default function EditPlatformPage() {
           setIsLoading(false); 
         }, (err) => {
           console.error("Error fetching component instances:", err);
-          toast({ title: "Error", description: "Could not load component instances.", variant: "destructive"});
+          toast({ title: "Error", description: "Could not load component instances.", variant = "destructive" });
           setComponentInstances([]);
           setIsLoading(false);
         });
         return () => unsubscribeInstances(); 
       } else {
         console.warn(`Default layout ${platform.defaultLayoutId} not found.`);
-        toast({ title: "Layout Error", description: `Layout ${platform.defaultLayoutId} not found.`, variant: "destructive"});
+        toast({ title: "Layout Error", description: `Layout ${platform.defaultLayoutId} not found.`, variant="destructive" });
         setCurrentLayout(null);
         setComponentInstances([]);
         setIsLoading(false);
       }
     }, (err) => {
       console.error("Error fetching layout:", err);
-      toast({ title: "Error", description: "Could not load layout.", variant: "destructive"});
+      toast({ title: "Error", description: "Could not load layout.", variant = "destructive" });
       setCurrentLayout(null);
       setComponentInstances([]);
       setIsLoading(false);
     });
     return () => unsubscribeLayout(); 
-  }, [platformId, platform?.defaultLayoutId, toast, currentLayout]); // Added currentLayout to dependency array
+  }, [platformId, platform?.defaultLayoutId, toast, currentLayout]);
 
 
   const handleSaveChanges = async () => {
-    if (!currentUser || !platform) return;
+    if (!platform) return;
     if (!platformName.trim()) {
-      toast({ title: "Validation Error", description: "Platform name cannot be empty.", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Platform name cannot be empty.", variant = "destructive" });
       return;
     }
     setIsSaving(true);
@@ -252,7 +239,7 @@ export default function EditPlatformPage() {
       toast({ title: "Changes Saved", description: `Platform "${platformName}" updated.` });
     } catch (saveError) {
       console.error("Error updating platform: ", saveError);
-      toast({ title: "Error Saving Changes", variant: "destructive" });
+      toast({ title: "Error Saving Changes", variant="destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -262,14 +249,16 @@ export default function EditPlatformPage() {
   const selectedComponentDefinition = globalComponents.find(def => def.id === selectedComponentInstance?.definitionId);
 
   const handleAddComponentToCanvas = (componentDef: GlobalComponentDefinition) => {
-    if (!currentLayout || !currentUser || !platformId) {
-        toast({ title: "Error", description: "No active layout, user, or platform ID found.", variant: "destructive"});
+    if (!currentLayout || !platformId) {
+        toast({ title: "Error", description: "No active layout or platform ID found.", variant = "destructive" });
         return;
     }
+    const tenantId = platform?.tenantId || currentUser?.uid || 'public-user';
+
     const newInstance: Omit<PlatformComponentInstance, 'id' | 'createdAt' | 'lastModified'> = {
         definitionId: componentDef.id,
         type: componentDef.type, 
-        tenantId: currentUser.uid, 
+        tenantId: tenantId, 
         platformId: platformId,
         layoutId: currentLayout.id,
         configuredValues: {}, 
@@ -290,12 +279,12 @@ export default function EditPlatformPage() {
         lastModified: serverTimestamp(),
     })
     .then((docRef) => {
-        toast({ title: "Component Added", description: `${componentDef.displayName} added to canvas.`});
+        toast({ title: "Component Added", description: `${componentDef.displayName} added to canvas.` });
         setSelectedInstanceId(docRef.id); 
     })
     .catch(err => {
         console.error("Error adding component instance: ", err);
-        toast({ title: "Error", description: "Could not add component.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not add component.", variant = "destructive" });
     });
   };
 
@@ -304,14 +293,14 @@ export default function EditPlatformPage() {
     const instanceDocRef = doc(db, 'platforms', platformId, 'components', instanceId);
     try {
       await deleteDoc(instanceDocRef);
-      toast({ title: "Component Removed", description: "Component instance removed from canvas."});
+      toast({ title: "Component Removed", description: "Component instance removed from canvas." });
       if (selectedInstanceId === instanceId) {
         setSelectedInstanceId(null); 
       }
       // Firestore listener will update the componentInstances state automatically
     } catch (deleteError) {
       console.error("Error deleting component instance:", deleteError);
-      toast({ title: "Error", description: "Could not remove component instance.", variant: "destructive"});
+      toast({ title: "Error", description: "Could not remove component instance.", variant = "destructive" });
     }
   };
 
@@ -323,7 +312,7 @@ export default function EditPlatformPage() {
         lastModified: serverTimestamp()
     }).catch(err => {
         console.error("Error updating instance property:", err);
-        toast({title: "Update Error", description: "Could not update property.", variant: "destructive"});
+        toast({title: "Update Error", description: "Could not update property.", variant="destructive" });
     });
   };
 
@@ -351,8 +340,7 @@ export default function EditPlatformPage() {
         toast({ title: "Order Saved", description: "Component order updated." });
       } catch (error) {
         console.error("Error updating component order:", error);
-        toast({ title: "Order Error", description: "Failed to save new order.", variant: "destructive" });
-        // Firestore listener should eventually revert to the correct server state if batch fails.
+        toast({ title: "Order Error", description: "Failed to save new order.", variant = "destructive" });
       }
     }
   };
@@ -435,7 +423,7 @@ export default function EditPlatformPage() {
               </CardContent>
             </Card>
             <Card className="flex-1 flex flex-col min-h-0"> 
-              <CardHeader className="shrink-0"> {/* Changed flex-shrink-0 */}
+              <CardHeader className="shrink-0">
                 <CardTitle className="text-base flex items-center gap-1">
                   <PaletteIcon className="h-4 w-4 text-primary" /> Component Palette
                 </CardTitle>
@@ -463,7 +451,7 @@ export default function EditPlatformPage() {
 
           <div className="md:col-span-6 flex flex-col min-h-0"> 
             <Card className="flex-1 flex flex-col border-2 border-dashed min-h-0">
-              <CardHeader className="shrink-0"> {/* Changed flex-shrink-0 */}
+              <CardHeader className="shrink-0">
                   <CardTitle className="text-base">Canvas ({currentLayout?.name || 'No Layout'})</CardTitle>
               </CardHeader>
               <ScrollArea className="flex-1 bg-muted/20 p-4 rounded-b-md">
@@ -489,7 +477,7 @@ export default function EditPlatformPage() {
 
           <div className="md:col-span-3 flex flex-col min-h-0"> 
             <Card className="flex-1 flex flex-col min-h-0">
-              <CardHeader className="shrink-0"> {/* Changed flex-shrink-0 */}
+              <CardHeader className="shrink-0">
                 <CardTitle className="text-base flex items-center gap-1">
                   <Settings2 className="h-4 w-4 text-primary" /> Component Properties
                 </CardTitle>

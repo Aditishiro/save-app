@@ -1,9 +1,9 @@
 
-'use client'; // Make this a client component to use hooks
+'use client'; 
 
 import { type ReactNode, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Import usePathname and useRouter
+import { usePathname } from 'next/navigation'; 
 import {
   LayoutGrid,
   Layers,
@@ -14,7 +14,6 @@ import {
   LogOut,
   Search,
   BarChart3,
-  Loader2, 
   Package, 
   Building, 
   Brain, 
@@ -72,26 +71,12 @@ const bottomNavItems = [
 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { currentUser, loading, logOut } = useAuth();
-  const router = useRouter();
+  const { currentUser } = useAuth();
   const pathname = usePathname(); 
 
-  useEffect(() => {
-    if (!loading && !currentUser) {
-      router.push('/'); 
-    }
-  }, [currentUser, loading, router]);
-
-  if (loading || !currentUser) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const isPlatformAdmin = currentUser?.email === 'testadmin@example.com'; 
-  const canAccessPlatformBuilder = !!currentUser;
+  // In a fully public app, all features are enabled for the 'public-user'
+  const isPlatformAdmin = true;
+  const canAccessPlatformBuilder = true;
 
 
   return (
@@ -198,22 +183,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={currentUser.photoURL || "https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
-                    <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                    <AvatarImage src={"https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
+                    <AvatarFallback>{currentUser?.email?.[0]?.toUpperCase() || 'P'}</AvatarFallback>
                   </Avatar>
                   <div className="text-left group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate">{currentUser.displayName || currentUser.email}</p>
-                    {currentUser.displayName && <p className="text-xs text-sidebar-foreground/70 truncate">{currentUser.email}</p>}
+                    <p className="text-sm font-medium truncate">{currentUser?.displayName || "Public User"}</p>
+                    {currentUser?.email && <p className="text-xs text-sidebar-foreground/70 truncate">{currentUser.email}</p>}
                   </div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right" align="start" className="w-56 bg-popover/80 backdrop-blur-sm dark:bg-popover/90">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>My Account (Public Mode)</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem disabled> 
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings">
                     <Settings className="mr-2 h-4 w-4" />
@@ -221,9 +202,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logOut}>
+                <DropdownMenuItem disabled>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>Log out (Disabled)</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -242,9 +223,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 />
               </div>
             </div>
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={currentUser.photoURL || "https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
-              <AvatarFallback>{currentUser.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+             <Avatar className="h-9 w-9">
+              <AvatarImage src={"https://placehold.co/200x200.png"} alt="User Avatar" data-ai-hint="user avatar" />
+              <AvatarFallback>{currentUser?.email?.[0]?.toUpperCase() || 'P'}</AvatarFallback>
             </Avatar>
           </header>
           <main className="flex-1 p-6 bg-background overflow-y-auto">

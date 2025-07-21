@@ -67,7 +67,7 @@ export default function EditFormPage() {
 
 
   useEffect(() => {
-    if (!formId || !currentUser) {
+    if (!formId) {
         if (!formId) router.push('/dashboard/my-forms');
         return;
     };
@@ -80,12 +80,9 @@ export default function EditFormPage() {
       .then((docSnap) => {
         if (docSnap.exists()) {
           const formData = docSnap.data() as FormDocument;
-          if (formData.ownerId !== currentUser.uid) {
-             setError("You are not authorized to edit this form.");
-             toast({ title: "Access Denied", description: "You do not have permission to edit this form.", variant: "destructive"});
-             router.push('/dashboard/my-forms');
-             return;
-          }
+          // In public mode, we remove the owner check
+          // if (formData.ownerId !== currentUser.uid) { ... }
+
           setFormTitle(formData.title);
           setFormDescription(formData.description || "");
           setIntendedUseCase(formData.intendedUseCase || "");
@@ -121,7 +118,7 @@ export default function EditFormPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [formId, currentUser, router, toast]);
+  }, [formId, router, toast]);
 
 
   const handleAddField = useCallback((fieldType: string) => {
@@ -169,16 +166,13 @@ export default function EditFormPage() {
   ));
 
   const handleSaveChanges = async (newStatus?: 'Draft' | 'Published' | 'Archived') => {
-    if (!currentUser) {
-      toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive"});
-      return;
-    }
+    // No currentUser check in public mode
     if (!formTitle.trim()) {
       toast({ title: "Validation Error", description: "Form title cannot be empty.", variant: "destructive" });
       return;
     }
      if (!intendedUseCase.trim()) {
-      toast({ title: "Validation Error", description: "Intended use case cannot be empty.", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Intended use case cannot be empty.", variant = "destructive" });
       return;
     }
 
@@ -377,5 +371,3 @@ export default function EditFormPage() {
     </div>
   );
 }
-
-    

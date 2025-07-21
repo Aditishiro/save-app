@@ -28,27 +28,46 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// MOCK a public user object for a public-only app
+const publicUser: User = {
+  uid: 'public-user',
+  email: 'public@example.com',
+  displayName: 'Public User',
+  photoURL: '',
+  emailVerified: true,
+  isAnonymous: true,
+  metadata: {},
+  providerData: [],
+  providerId: 'firebase',
+  tenantId: null,
+  delete: async () => {},
+  getIdToken: async () => 'public-token',
+  getIdTokenResult: async () => ({
+    token: 'public-token',
+    claims: {},
+    authTime: '',
+    issuedAtTime: '',
+    signInProvider: null,
+    signInSecondFactor: null,
+    expirationTime: '',
+  }),
+  reload: async () => {},
+  toJSON: () => ({}),
+};
+
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // In a fully public app, we can bypass real auth and use a mock user.
+  // This avoids loading screens and auth checks.
+  const [currentUser] = useState<User | null>(publicUser);
+  const [loading] = useState(false); // Never in a loading state
   const router = useRouter();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
-    return () => unsubscribe(); // Cleanup subscription on unmount
-  }, []);
 
   const logOut = async () => {
-    try {
-      await firebaseSignOut(auth);
-      router.push('/'); // Redirect to login page after logout
-    } catch (error) {
-      console.error("Error signing out: ", error);
-      // Handle error (e.g., show a toast message)
-    }
+    // In a public app, logout doesn't do much, could just reload or go to home.
+    console.log("Logout triggered in public mode. No action taken.");
+    router.push('/');
   };
 
   const value = {
@@ -57,14 +76,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logOut,
   };
 
-  if (loading) {
-    // You can replace this with a more sophisticated loading screen
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // No loading screen needed for a public-only app
+  // if (loading) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center bg-background">
+  //       <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  //     </div>
+  //   );
+  // }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
