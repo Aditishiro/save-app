@@ -142,7 +142,7 @@ export default function EditPlatformPage() {
         }
       } else {
         setError("Platform with ID \"" + platformId + "\" not found.");
-        toast({ title: "Platform Not Found", variant = "destructive" });
+        toast({ title: "Platform Not Found", variant: "destructive" });
         router.push('/dashboard/platform-builder/my-platforms');
         setIsLoading(false);
       }
@@ -163,7 +163,7 @@ export default function EditPlatformPage() {
       setGlobalComponents(fetchedComponents);
     }, (err) => {
       console.error("Error fetching global components:", err);
-      toast({ title: "Error", description: "Could not load global components.", variant = "destructive" });
+      toast({ title: "Error", description: "Could not load global components.", variant: "destructive" });
     });
     return () => unsubscribe();
   }, [toast]);
@@ -199,21 +199,21 @@ export default function EditPlatformPage() {
           setIsLoading(false); 
         }, (err) => {
           console.error("Error fetching component instances:", err);
-          toast({ title: "Error", description: "Could not load component instances.", variant = "destructive" });
+          toast({ title: "Error", description: "Could not load component instances.", variant: "destructive" });
           setComponentInstances([]);
           setIsLoading(false);
         });
         return () => unsubscribeInstances(); 
       } else {
         console.warn(`Default layout ${platform.defaultLayoutId} not found.`);
-        toast({ title: "Layout Error", description: `Layout ${platform.defaultLayoutId} not found.`, variant="destructive" });
+        toast({ title: "Layout Error", description: `Layout ${platform.defaultLayoutId} not found.`, variant:"destructive" });
         setCurrentLayout(null);
         setComponentInstances([]);
         setIsLoading(false);
       }
     }, (err) => {
       console.error("Error fetching layout:", err);
-      toast({ title: "Error", description: "Could not load layout.", variant = "destructive" });
+      toast({ title: "Error", description: "Could not load layout.", variant: "destructive" });
       setCurrentLayout(null);
       setComponentInstances([]);
       setIsLoading(false);
@@ -225,7 +225,7 @@ export default function EditPlatformPage() {
   const handleSaveChanges = async () => {
     if (!platform) return;
     if (!platformName.trim()) {
-      toast({ title: "Validation Error", description: "Platform name cannot be empty.", variant = "destructive" });
+      toast({ title: "Validation Error", description: "Platform name cannot be empty.", variant: "destructive" });
       return;
     }
     setIsSaving(true);
@@ -239,7 +239,7 @@ export default function EditPlatformPage() {
       toast({ title: "Changes Saved", description: `Platform "${platformName}" updated.` });
     } catch (saveError) {
       console.error("Error updating platform: ", saveError);
-      toast({ title: "Error Saving Changes", variant="destructive" });
+      toast({ title: "Error Saving Changes", variant:"destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -250,7 +250,7 @@ export default function EditPlatformPage() {
 
   const handleAddComponentToCanvas = (componentDef: GlobalComponentDefinition) => {
     if (!currentLayout || !platformId) {
-        toast({ title: "Error", description: "No active layout or platform ID found.", variant = "destructive" });
+        toast({ title: "Error", description: "No active layout or platform ID found.", variant: "destructive" });
         return;
     }
     const tenantId = platform?.tenantId || currentUser?.uid || 'public-user';
@@ -284,7 +284,7 @@ export default function EditPlatformPage() {
     })
     .catch(err => {
         console.error("Error adding component instance: ", err);
-        toast({ title: "Error", description: "Could not add component.", variant = "destructive" });
+        toast({ title: "Error", description: "Could not add component.", variant: "destructive" });
     });
   };
 
@@ -300,7 +300,7 @@ export default function EditPlatformPage() {
       // Firestore listener will update the componentInstances state automatically
     } catch (deleteError) {
       console.error("Error deleting component instance:", deleteError);
-      toast({ title: "Error", description: "Could not remove component instance.", variant = "destructive" });
+      toast({ title: "Error", description: "Could not remove component instance.", variant: "destructive" });
     }
   };
 
@@ -312,7 +312,7 @@ export default function EditPlatformPage() {
         lastModified: serverTimestamp()
     }).catch(err => {
         console.error("Error updating instance property:", err);
-        toast({title: "Update Error", description: "Could not update property.", variant="destructive" });
+        toast({title: "Update Error", description: "Could not update property.", variant:"destructive" });
     });
   };
 
@@ -340,7 +340,7 @@ export default function EditPlatformPage() {
         toast({ title: "Order Saved", description: "Component order updated." });
       } catch (error) {
         console.error("Error updating component order:", error);
-        toast({ title: "Order Error", description: "Failed to save new order.", variant = "destructive" });
+        toast({ title: "Order Error", description: "Failed to save new order.", variant: "destructive" });
       }
     }
   };

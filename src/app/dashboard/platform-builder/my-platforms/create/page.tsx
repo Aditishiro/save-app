@@ -52,11 +52,11 @@ export default function CreatePlatformPage() {
       return;
     }
     if (!selectedPurpose) {
-      toast({ title: "Validation Error", description: "Please select a platform purpose.", variant = "destructive" });
+      toast({ title: "Validation Error", description: "Please select a platform purpose.", variant: "destructive" });
       return;
     }
     if (selectedPurpose === "other" && !customPurposeDescription.trim()) {
-      toast({ title: "Validation Error", description: "Please specify the platform purpose if 'Other' is selected.", variant = "destructive" });
+      toast({ title: "Validation Error", description: "Please specify the platform purpose if 'Other' is selected.", variant: "destructive" });
       return;
     }
 
