@@ -1,13 +1,13 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertTriangle, Package, Edit3, Trash2, Code, Info, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase/firebase';
-import { collection, query, getDocs, Timestamp, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, Timestamp, orderBy, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import type { GlobalComponentDefinition } from '@/platform-builder/data-models';
 import {
   AlertDialog,
@@ -28,40 +28,35 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import EditGlobalComponentClient from './edit-global-component-client'; // New import
 
-export default function GlobalComponentsListClient() {
+// Props now include an optional onEditComponent handler
+interface GlobalComponentsListClientProps {
+  onEditComponent?: (component: GlobalComponentDefinition) => void;
+}
+
+
+export default function GlobalComponentsListClient({ onEditComponent }: GlobalComponentsListClientProps) {
   const [components, setComponents] = useState<GlobalComponentDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const [selectedComponentForEdit, setSelectedComponentForEdit] = useState<GlobalComponentDefinition | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  const fetchComponents = async () => {
+  useEffect(() => {
     setIsLoading(true);
     setError(null);
-    try {
-      const componentsCollectionRef = collection(db, 'components');
-      // Temporarily removed orderBy for diagnostics
-      const q = query(componentsCollectionRef); 
-      const querySnapshot = await getDocs(q);
+    const componentsCollectionRef = collection(db, 'components');
+    const q = query(componentsCollectionRef, orderBy('displayName', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedComponents = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
         return {
           id: doc.id,
-          ...data,
-          // Ensure schema is stringified if it's an object, for consistent display/handling
-          configurablePropertiesSchema: typeof data.configurablePropertiesSchema === 'object'
-            ? JSON.stringify(data.configurablePropertiesSchema, null, 2)
-            : data.configurablePropertiesSchema,
+          ...doc.data(),
         } as GlobalComponentDefinition;
       });
-      // If still not ordered by displayName, you might want to sort client-side for now if the above works
-      fetchedComponents.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
       setComponents(fetchedComponents);
-    } catch (err) {
+      setIsLoading(false);
+    }, (err) => {
       console.error("Error fetching global components: ", err);
       setError("Failed to fetch global components. Please check your Firestore rules and ensure the 'components' collection exists.");
       toast({
@@ -69,20 +64,17 @@ export default function GlobalComponentsListClient() {
         description: "Could not load global components. Check console for details.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
-    }
-  };
+    });
 
-  useEffect(() => {
-    fetchComponents();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => unsubscribe(); // Cleanup the listener on component unmount
+  }, [toast]);
+
 
   const handleDeleteComponent = async (componentId: string, componentName: string) => {
     try {
       await deleteDoc(doc(db, 'components', componentId));
-      setComponents(prevComponents => prevComponents.filter(comp => comp.id !== componentId));
+      // No need to manually update state, onSnapshot will do it.
       toast({
         title: "Component Deleted",
         description: `Global component "${componentName}" has been successfully deleted.`,
@@ -97,23 +89,12 @@ export default function GlobalComponentsListClient() {
     }
   };
 
-  const handleOpenEditDialog = (component: GlobalComponentDefinition) => {
-    setSelectedComponentForEdit(component);
-    setIsEditDialogOpen(true);
-  };
 
-  const handleEditDialogClose = () => {
-    setIsEditDialogOpen(false);
-    setSelectedComponentForEdit(null);
-    fetchComponents(); // Refetch components in case any changes were made
-  };
-
-  const formatDate = (timestamp: Timestamp | undefined | any) => { // Added 'any' for robustness with potential old data
+  const formatDate = (timestamp: Timestamp | undefined | any) => {
     if (!timestamp) return 'N/A';
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
         return timestamp.toDate().toLocaleDateString();
     }
-    // Fallback for data that might not be a Firestore Timestamp object (e.g., string)
     try {
         return new Date(timestamp).toLocaleDateString();
     } catch (e) {
@@ -154,10 +135,12 @@ export default function GlobalComponentsListClient() {
           {components.map((component) => (
             <Card 
               key={component.id} 
-              className="flex flex-col shadow-sm cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => handleOpenEditDialog(component)}
+              className="flex flex-col shadow-sm"
             >
-              <CardHeader>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => onEditComponent?.(component)}
+              >
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-md flex items-center gap-2">
                      {component.iconUrl ? <img src={component.iconUrl} alt={component.displayName} className="h-5 w-5" data-ai-hint="component icon"/> : <Package className="h-5 w-5 text-muted-foreground"/>}
@@ -167,7 +150,10 @@ export default function GlobalComponentsListClient() {
                 </div>
                 <CardDescription className="text-xs">ID: {component.id}</CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow space-y-1 text-sm">
+              <CardContent 
+                className="flex-grow space-y-1 text-sm cursor-pointer hover:bg-muted/50"
+                onClick={() => onEditComponent?.(component)}
+              >
                 {component.description && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -180,34 +166,7 @@ export default function GlobalComponentsListClient() {
                     </TooltipContent>
                   </Tooltip>
                 )}
-                {typeof component.configurablePropertiesSchema === 'string' && component.configurablePropertiesSchema.length > 2 && ( // Check if it's a non-empty string
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <p className="text-muted-foreground truncate cursor-help flex items-center gap-1">
-                            <Code className="h-3 w-3" /> Configurable Properties
-                        </p>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" align="start" className="max-w-md">
-                        <ScrollArea className="h-40">
-                         <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded-md">{component.configurablePropertiesSchema}</pre>
-                        </ScrollArea>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                 {component.template && (
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <p className="text-muted-foreground truncate cursor-help flex items-center gap-1">
-                                <Package className="h-3 w-3" /> View Template String
-                            </p>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" align="start" className="max-w-md">
-                            <ScrollArea className="h-40">
-                                <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded-md">{component.template}</pre>
-                            </ScrollArea>
-                        </TooltipContent>
-                     </Tooltip>
-                 )}
+                 
                 <p className="text-xs text-muted-foreground pt-1">
                   Last Modified: {formatDate(component.lastModified)}
                 </p>
@@ -219,9 +178,8 @@ export default function GlobalComponentsListClient() {
               </CardContent>
               <CardFooter className="border-t pt-3">
                 <div className="flex w-full justify-end items-center gap-2">
-                  {/* The main card click opens the edit dialog, so this button might be redundant or serve a different purpose */}
-                  <Button variant="outline" size="xs" onClick={(e) => { e.stopPropagation(); handleOpenEditDialog(component); }}>
-                    <Edit3 className="mr-1 h-3 w-3" /> Edit
+                  <Button variant="outline" size="xs" onClick={(e) => { e.stopPropagation(); onEditComponent?.(component); }}>
+                    <Edit3 className="mr-1 h-3 w-3" /> View/Edit
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -250,14 +208,6 @@ export default function GlobalComponentsListClient() {
             </Card>
           ))}
         </div>
-      )}
-      {selectedComponentForEdit && (
-        <EditGlobalComponentClient
-          isOpen={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen} // Directly pass setIsEditDialogOpen
-          componentToEdit={selectedComponentForEdit}
-          onClose={handleEditDialogClose} // Pass the combined close and refetch handler
-        />
       )}
     </TooltipProvider>
   );
