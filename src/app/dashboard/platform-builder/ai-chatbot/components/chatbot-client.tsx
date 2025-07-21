@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send, Bot, User, Brain, AlertTriangle, Building, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { generatePlatformFromPrompt, type GeneratePlatformFromPromptInput, type GeneratePlatformFromPromptOutput } from '@/ai/flows/ai-platform-generator';
+import { generatePlatformFromPrompt } from '@/ai/flows/ai-platform-generator';
+import type { GeneratePlatformFromPromptInput, GeneratePlatformFromPromptOutput } from '@/ai/flows/ai-platform-generator-types';
 import type { PlatformData, PlatformLayout, PlatformComponentInstance } from '@/platform-builder/data-models';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase/firebase';
@@ -112,13 +113,26 @@ export default function ChatbotClient() {
         
         for (const instanceData of layoutData.componentInstances) {
             const instanceDocRef = doc(collection(db, 'platforms', platformDocRef.id, 'components'));
+            
+            // **FIX**: Sanitize configuredValues to prevent nested arrays
+            const sanitizedConfiguredValues: Record<string, any> = {};
+            for (const key in instanceData.configuredValues) {
+                const value = instanceData.configuredValues[key];
+                if (Array.isArray(value)) {
+                    // Firestore does not support nested arrays. Stringify them.
+                    sanitizedConfiguredValues[key] = JSON.stringify(value, null, 2);
+                } else {
+                    sanitizedConfiguredValues[key] = value;
+                }
+            }
+
             const newInstance: Omit<PlatformComponentInstance, 'id'> = {
                 definitionId: instanceData.definitionId,
                 type: instanceData.type,
                 tenantId: currentUser.uid,
                 platformId: platformDocRef.id,
                 layoutId: layoutDocRef.id,
-                configuredValues: instanceData.configuredValues,
+                configuredValues: sanitizedConfiguredValues, // Use sanitized values
                 order: instanceData.order,
                 createdAt: serverTimestamp() as Timestamp,
                 lastModified: serverTimestamp() as Timestamp,
