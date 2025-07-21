@@ -71,11 +71,11 @@ export default function ChatbotClient() {
   };
 
   const handleCreatePlatform = async (platformStructure: GeneratePlatformFromPromptOutput) => {
-    if (!currentUser) {
-      toast({ title: "Authentication Error", description: "You must be logged in to create a platform.", variant: "destructive" });
-      return;
-    }
     setIsCreating(true);
+    
+    // Allow unauthenticated creation by assigning a public tenantId
+    const tenantId = currentUser ? currentUser.uid : 'public-user';
+    const platformAdmins = currentUser ? [currentUser.uid] : [];
 
     try {
       const batch = writeBatch(db);
@@ -83,14 +83,14 @@ export default function ChatbotClient() {
       // 1. Create Platform document
       const platformDocRef = doc(collection(db, 'platforms'));
       const newPlatform: Omit<PlatformData, 'id'> = {
-        tenantId: currentUser.uid,
+        tenantId: tenantId,
         name: platformStructure.platformName,
         description: platformStructure.platformDescription,
         platformPurpose: platformStructure.platformPurpose,
         status: 'draft',
         createdAt: serverTimestamp() as Timestamp,
         lastModified: serverTimestamp() as Timestamp,
-        platformAdmins: [currentUser.uid],
+        platformAdmins: platformAdmins,
       };
       
       let defaultLayoutId: string | null = null;
@@ -104,7 +104,7 @@ export default function ChatbotClient() {
 
         const newLayout: Omit<PlatformLayout, 'id'> = {
           platformId: platformDocRef.id,
-          tenantId: currentUser.uid,
+          tenantId: tenantId,
           name: layoutData.name,
           createdAt: serverTimestamp() as Timestamp,
           lastModified: serverTimestamp() as Timestamp,
@@ -129,7 +129,7 @@ export default function ChatbotClient() {
             const newInstance: Omit<PlatformComponentInstance, 'id'> = {
                 definitionId: instanceData.definitionId,
                 type: instanceData.type,
-                tenantId: currentUser.uid,
+                tenantId: tenantId,
                 platformId: platformDocRef.id,
                 layoutId: layoutDocRef.id,
                 configuredValues: sanitizedConfiguredValues, // Use sanitized values
@@ -149,10 +149,16 @@ export default function ChatbotClient() {
 
       toast({
         title: "Platform Created Successfully!",
-        description: `Platform "${platformStructure.platformName}" has been created. Redirecting to the editor...`,
+        description: `Platform "${platformStructure.platformName}" has been created. Redirecting...`,
       });
+      
+      // If a user is logged in, redirect them to the editor. Otherwise, to the public view.
+      if (currentUser) {
+        router.push(`/dashboard/platform-builder/my-platforms/${platformDocRef.id}/edit`);
+      } else {
+        router.push(`/platforms/${platformDocRef.id}`);
+      }
 
-      router.push(`/dashboard/platform-builder/my-platforms/${platformDocRef.id}/edit`);
 
     } catch (error) {
         console.error("Error creating platform from chatbot:", error);

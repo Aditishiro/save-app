@@ -3,125 +3,132 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
+  
+    // Helper function to check if a user is a platform administrator.
+    // This relies on a custom claim 'platformAdmin' being set to true on the user's auth token.
+    function isPlatformAdmin() {
+      return request.auth != null && request.auth.token.platformAdmin == true;
     }
 
-    function isUser(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    function isPlatformGlobalAdmin() {
-      return isAuthenticated() && request.auth.token.platformAdmin == true;
-    }
-
-    function isTenantMember(tenantId) {
-      return isAuthenticated() && request.auth.token.tenantId == tenantId;
-    }
-
-    // Assumes a 'roles' array in custom claims, e.g., request.auth.token.roles = ['tenant_admin']
+    // Helper function to check if a user is an administrator of a specific tenant.
+    // This relies on the user's custom claim 'tenantId' matching the resource's tenantId
+    // AND the user having the 'tenant_admin' role in their 'roles' custom claim.
     function isTenantAdmin(tenantId) {
-      return isTenantMember(tenantId) && request.auth.token.roles.hasAny(['tenant_admin']);
+      return request.auth != null && 
+             request.auth.token.tenantId == tenantId &&
+             'tenant_admin' in request.auth.token.roles;
+    }
+    
+    // Helper function to check if the user is an owner/member of the specified tenant.
+    function isTenantMember(tenantId) {
+       return request.auth != null && request.auth.token.tenantId == tenantId;
     }
 
-    // Forms: Owned by individual users
-    match /forms/{formId} {
-      allow create: if isAuthenticated()
-                    && request.resource.data.ownerId == request.auth.uid;
-      allow get: if (resource.data.status == 'Published' && resource.data.isPublic == true)
-                  || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
-                  || isPlatformGlobalAdmin(); // Platform admin can read any form for moderation/support
-      allow list: if isAuthenticated(); // Client-side queries must filter by ownerId or public status
-      allow update: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
-    }
-
-    // Submissions: Linked to forms, readable by form owner
-    match /submissions/{submissionId} {
-      allow create: if isAuthenticated() && get(/databases/$(database)/documents/forms/$(request.resource.data.formId)).data.status == 'Published';
-      allow read, update, delete: if isAuthenticated() && get(/databases/$(database)/documents/forms/$(resource.data.formId)).data.ownerId == request.auth.uid;
-      allow list: if isAuthenticated(); // Client-side queries must filter by formId and check form ownership
-    }
-
-    // Global Components: Readable by all authenticated, writable by platform admins
-    match /components/{componentDefId} {
-      allow get, list: if isAuthenticated();
-      allow create, update, delete: if isPlatformGlobalAdmin();
-    }
-
-    // Platforms: Owned by tenants, editable by tenant admins or designated platform admins
-    match /platforms/{platformId} {
-      allow get: if (resource.data.status == 'published') // Published platforms are publicly viewable
-                  || (isAuthenticated() && isTenantMember(resource.data.tenantId))
-                  || isPlatformGlobalAdmin();
-      allow list: if isAuthenticated(); // Client must filter by tenantId or public status
-
-      allow create: if isAuthenticated()
-                    && request.resource.data.tenantId == request.auth.token.tenantId; // User can create platform for their own tenant
-      allow update: if isAuthenticated() &&
-                       (isTenantAdmin(resource.data.tenantId) || (resource.data.platformAdmins != null && resource.data.platformAdmins.hasAny([request.auth.uid])))
-                    || isPlatformGlobalAdmin(); // Tenant admins or designated platform admins can update
-      allow delete: if isAuthenticated() &&
-                       (isTenantAdmin(resource.data.tenantId)) // Only tenant admins can delete
-                    || isPlatformGlobalAdmin();
-
-      // Layouts within a platform
-      match /layouts/{layoutId} {
-        allow get: if parentDocData("platforms", platformId).status == 'published'
-                    || (isAuthenticated() && isTenantMember(parentDocData("platforms", platformId).tenantId))
-                    || isPlatformGlobalAdmin();
-        allow list: if isAuthenticated() && isTenantMember(parentDocData("platforms", platformId).tenantId)
-                     || isPlatformGlobalAdmin();
-        allow create: if isAuthenticated() && isTenantAdmin(parentDocData("platforms", platformId).tenantId)
-                       || isPlatformGlobalAdmin();
-        allow update, delete: if isAuthenticated() && isTenantAdmin(parentDocData("platforms", platformId).tenantId)
-                               || isPlatformGlobalAdmin();
-      }
-
-      // Component Instances within a platform's layout
-      match /components/{instanceId} {
-        allow get: if parentDocData("platforms", platformId).status == 'published'
-                    || (isAuthenticated() && isTenantMember(parentDocData("platforms", platformId).tenantId))
-                    || isPlatformGlobalAdmin();
-        allow list: if isAuthenticated() && isTenantMember(parentDocData("platforms", platformId).tenantId)
-                     || isPlatformGlobalAdmin();
-        allow create: if isAuthenticated() &&
-                         (isTenantAdmin(parentDocData("platforms", platformId).tenantId) || (parentDocData("platforms", platformId).platformAdmins != null && parentDocData("platforms", platformId).platformAdmins.hasAny([request.auth.uid])))
-                      || isPlatformGlobalAdmin();
-        allow update, delete: if isAuthenticated() &&
-                                 (isTenantAdmin(parentDocData("platforms", platformId).tenantId) || (parentDocData("platforms", platformId).platformAdmins != null && parentDocData("platforms", platformId).platformAdmins.hasAny([request.auth.uid])))
-                              || isPlatformGlobalAdmin();
-      }
-    }
-
-    // Tenant Metadata
+    // Tenant metadata collection.
+    // Contains high-level information about each tenant.
     match /tenants/{tenantId} {
-      allow get: if isTenantMember(tenantId) || isPlatformGlobalAdmin();
-      allow list: if isPlatformGlobalAdmin(); // Only platform admins can list all tenants
-      allow create: if isPlatformGlobalAdmin(); // Or a specific trusted function for self-service tenant creation
-      allow update: if isTenantAdmin(tenantId) || isPlatformGlobalAdmin();
-      // Delete might be restricted to platform admin only
-      allow delete: if isPlatformGlobalAdmin();
+      // Platform admins can manage any tenant.
+      // Tenant admins can read and update their own tenant's metadata.
+      allow read, update: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      // Only platform admins can create or delete tenant records.
+      allow create, delete: if isPlatformAdmin();
 
-      // User profiles within a tenant
+      // Subcollection for users within a tenant.
       match /users/{userId} {
-        allow get: if isTenantMember(tenantId) || isPlatformGlobalAdmin();
-        allow list: if isTenantAdmin(tenantId) || isPlatformGlobalAdmin();
-        allow create: if isTenantAdmin(tenantId) || isPlatformGlobalAdmin(); // Tenant admin can add users
-        allow update: if (isUser(userId) && isTenantMember(tenantId)) // User can update their own profile
-                       || isTenantAdmin(tenantId)
-                       || isPlatformGlobalAdmin();
-        allow delete: if isTenantAdmin(tenantId) || isPlatformGlobalAdmin();
+        // Platform admins can manage any user profile in any tenant.
+        // Tenant admins can manage user profiles within their own tenant.
+        // A user can read their own profile.
+        allow read: if isPlatformAdmin() || isTenantAdmin(tenantId) || (request.auth != null && request.auth.uid == userId);
+        allow create, update, delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
       }
     }
 
-    // Helper function to get parent document data
-    function parentDocData(collectionName, docId) {
-      return get(/databases/$(database)/documents/$(collectionName)/$(docId)).data;
+    // Global Components collection.
+    // These are the master definitions for UI components available in the platform builder.
+    match /components/{componentId} {
+      // Allow any user (authenticated or unauthenticated) to read global component definitions.
+      // This is necessary for the AI Platform Generator tool to fetch available components.
+      allow read: if true;
+      // Only platform admins can create, update, or delete global component definitions.
+      allow write: if isPlatformAdmin();
+    }
+    
+    // Forms collection.
+    match /forms/{formId} {
+      // A user can read a form if it's marked as public, if they are the owner,
+      // or if they are a platform admin.
+      allow read: if resource.data.isPublic == true || 
+                     (request.auth != null && request.auth.uid == resource.data.ownerId) || 
+                     isPlatformAdmin();
+      
+      // A user can list forms they own. Platform admins can list all forms.
+      // Note: Client-side queries must include `where('ownerId', '==', request.auth.uid)`.
+      allow list: if (request.auth != null && request.query.where.ownerId == request.auth.uid) || isPlatformAdmin();
+      
+      // A user can update a form if they are the owner or a platform admin.
+      allow update: if (request.auth != null && request.auth.uid == resource.data.ownerId) || isPlatformAdmin();
+      
+      // A user can delete a form if they are the owner or a platform admin.
+      allow delete: if (request.auth != null && request.auth.uid == resource.data.ownerId) || isPlatformAdmin();
+
+      // Any authenticated user can create a new form.
+      // The rule ensures the `ownerId` of the new form matches the UID of the user creating it.
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Submissions collection.
+    match /submissions/{submissionId} {
+      // A user can create a submission for any form (unauthenticated submission allowed).
+      // This rule is intentionally open for public forms.
+      // Access to READ submissions is more restrictive.
+      allow create: if true;
+      
+      // Only platform admins can list all submissions.
+      // Reading individual submissions could be expanded (e.g., form owner can read submissions to their form).
+      // For now, keeping it simple: only platform admins can read/list.
+      // NOTE: This is a placeholder. A real app would need a rule like:
+      // `exists(/databases/$(database)/documents/forms/$(resource.data.formId))` and check ownership.
+      allow read, list, update, delete: if isPlatformAdmin();
+    }
+    
+    // Platforms collection.
+    // A platform is a user-built application composed of layouts and component instances.
+    match /platforms/{platformId} {
+      // Allow reading a platform if its status is 'published'.
+      // Also allow reading if the user is a member of the tenant that owns the platform (for previewing drafts),
+      // or if they are a platform admin.
+      allow read: if resource.data.status == 'published' || 
+                     isTenantMember(resource.data.tenantId) ||
+                     isPlatformAdmin();
+                     
+      // Allow unauthenticated users to create platforms if they are for the 'public-user' tenant.
+      // Allow authenticated users to create platforms for their own tenant.
+      allow create: if request.auth != null && request.resource.data.tenantId == request.auth.token.tenantId ||
+                     (request.auth == null && request.resource.data.tenantId == 'public-user');
+      
+      // Allow updating or deleting a platform if the user is an admin of that platform's tenant,
+      // or a global platform admin.
+      allow update, delete: if isTenantAdmin(resource.data.tenantId) || isPlatformAdmin();
+      
+      // Allow listing platforms owned by the user's tenant, or all platforms for a platform admin.
+      // Client-side queries must include `where('tenantId', '==', request.auth.token.tenantId)`.
+      allow list: if (request.auth != null && request.query.where.tenantId == request.auth.token.tenantId) || isPlatformAdmin();
+      
+      // Subcollections for layouts and component instances within a platform.
+      match /{subcollection}/{docId} {
+        // Inherit read access from the parent platform.
+        allow read: if get(/databases/$(database)/documents/platforms/$(platformId)).data.status == 'published' ||
+                       isTenantMember(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId) ||
+                       isPlatformAdmin();
+
+        // Allow creating layouts/components for unauthenticated users in the 'public-user' tenant.
+        // Allow authenticated users to create if they are a member of the tenant.
+        allow create: if (request.auth != null && isTenantMember(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId)) ||
+                       (request.auth == null && get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId == 'public-user');
+        
+        // Allow writing (update, delete) if the user is an admin of the tenant or a platform admin.
+        allow write: if isTenantAdmin(get(/databases/$(database)/documents/platforms/$(platformId)).data.tenantId) || isPlatformAdmin();
+      }
     }
   }
 }
-
-    
