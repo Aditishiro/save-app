@@ -6,32 +6,42 @@
 // 1. Ensure your Google Application Default Credentials are set up (e.g., by running `gcloud auth application-default login`)
 //    OR download your project's service account key JSON file from Firebase Console > Project Settings > Service accounts.
 // 2. If using a service account key, uncomment the serviceAccount lines and update the path.
-// 3. Replace 'YOUR_ADMIN_UID_HERE' with the actual UID of the user you want to make a platform admin.
+// 3. The admin UID is pre-filled with 'jLAdQGe0GbO8W9xlopOjyYyTniu2'. If you need to change it, update the `uid` constant.
 // 4. Run the script from your project root: `node setCustomClaim.js`
 
 const admin = require('firebase-admin');
 
 // Option 1: Use Application Default Credentials (recommended for Cloud environments or locally after `gcloud auth application-default login`)
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-  // databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com" // Optional: if you need database access
-});
+try {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    // databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com" // Optional: if you need database access
+  });
+} catch (e) {
+  console.error("Failed to initialize Firebase Admin with Application Default Credentials. Make sure you've run 'gcloud auth application-default login' or set up a service account key.", e);
+  process.exit(1);
+}
+
 
 // Option 2: Use a service account key file (uncomment and update path if needed)
 /*
-const serviceAccount = require("./path/to/your-service-account-key.json"); // <-- IMPORTANT: Update this path
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  // databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com" // Optional: if you need database access
-});
+try {
+    const serviceAccount = require("./path/to/your-service-account-key.json"); // <-- IMPORTANT: Update this path
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      // databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com" // Optional: if you need database access
+    });
+} catch (e) {
+    console.error("Failed to initialize Firebase Admin with Service Account. Ensure the path is correct and the file is valid.", e);
+    process.exit(1);
+}
 */
 
 // The UID of the existing admin user you want to grant platformAdmin privileges
 const uid = 'jLAdQGe0GbO8W9xlopOjyYyTniu2'; // Pre-filled with the UID you provided
 
-if (!uid || uid === 'YOUR_ADMIN_UID_HERE') {
-  console.error("Error: Please replace 'YOUR_ADMIN_UID_HERE' in the script with the actual user UID.");
+if (!uid) {
+  console.error("Error: The UID constant in the script is empty. Please provide the user UID.");
   process.exit(1);
 }
 
@@ -45,8 +55,8 @@ admin.auth().setCustomUserClaims(uid, { platformAdmin: true })
   .then(userRecord => {
     console.log('Updated custom claims for user:', userRecord.customClaims);
     console.log("\nNext Steps:");
-    console.log("1. The user may need to sign out and sign back in for the new claims to take effect in their ID token.");
-    console.log("2. Ensure your Firestore security rules are configured to check for `request.auth.token.platformAdmin == true`.");
+    console.log("1. The user MUST SIGN OUT and SIGN BACK IN for the new claims to take effect in their ID token.");
+    console.log("2. Ensure your Firestore security rules are deployed and configured to check for `request.auth.token.platformAdmin == true`.");
     process.exit(0); // Exit successfully
   })
   .catch(error => {
