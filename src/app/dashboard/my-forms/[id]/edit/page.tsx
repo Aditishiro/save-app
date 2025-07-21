@@ -172,7 +172,7 @@ export default function EditFormPage() {
       return;
     }
      if (!intendedUseCase.trim()) {
-      toast({ title: "Validation Error", description: "Intended use case cannot be empty.", variant = "destructive" });
+      toast({ title: "Validation Error", description: "Intended use case cannot be empty.", variant: "destructive" });
       return;
     }
 
