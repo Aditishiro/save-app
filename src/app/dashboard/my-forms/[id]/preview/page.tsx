@@ -207,7 +207,7 @@ export default function FormPreviewPage() {
         title={formConfig.title}
         description="This is how your form will appear to end-users."
         actions={
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild data-perf-ignore="true">
             <Link href={`/dashboard/my-forms/${formConfig.id}/edit`}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
             </Link>
