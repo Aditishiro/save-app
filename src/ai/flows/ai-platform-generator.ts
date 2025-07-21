@@ -4,8 +4,6 @@
  * @fileOverview An AI agent that generates a complete platform structure from a user's prompt.
  *
  * - generatePlatformFromPrompt - A function that handles the platform generation process.
- * - GeneratePlatformFromPromptInput - The input type for the function.
- * - GeneratePlatformFromPromptOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,30 +11,12 @@ import { z } from 'genkit';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebase';
 import type { GlobalComponentDefinition, PlatformComponentInstance } from '@/platform-builder/data-models';
-
-// Schemas for the AI Flow
-export const GeneratePlatformFromPromptInputSchema = z.object({
-  prompt: z.string().describe("The user's request describing the platform they want to build."),
-});
-export type GeneratePlatformFromPromptInput = z.infer<typeof GeneratePlatformFromPromptInputSchema>;
-
-export const GeneratePlatformFromPromptOutputSchema = z.object({
-  platformName: z.string().describe("A suitable name for the generated platform."),
-  platformDescription: z.string().describe("A brief description of the platform's purpose."),
-  platformPurpose: z.string().describe("The primary purpose or category of the platform (e.g., 'Online Banking Portal', 'Loan Origination System')."),
-  layouts: z.array(z.object({
-      id: z.string().describe("A unique, descriptive ID for the layout (e.g., 'dashboard', 'profileSettings')."),
-      name: z.string().describe("A user-friendly name for the layout (e.g., 'Main Dashboard', 'Profile Settings')."),
-      componentInstances: z.array(z.object({
-        id: z.string().describe("A unique ID for this component instance."),
-        definitionId: z.string().describe("The ID of the global component definition to use."),
-        type: z.string().describe("The type of the component, denormalized from the definition."),
-        configuredValues: z.record(z.any()).describe("An object of key-value pairs for the component's configurable properties."),
-        order: z.number().describe("The display order of the component within the layout, starting from 0.")
-      })).describe("The list of component instances for this layout.")
-  })).describe("An array of layouts for the platform.")
-});
-export type GeneratePlatformFromPromptOutput = z.infer<typeof GeneratePlatformFromPromptOutputSchema>;
+import { 
+    GeneratePlatformFromPromptInputSchema,
+    type GeneratePlatformFromPromptInput,
+    GeneratePlatformFromPromptOutputSchema,
+    type GeneratePlatformFromPromptOutput
+} from './ai-platform-generator-types';
 
 
 // Tool to fetch available global components from Firestore
