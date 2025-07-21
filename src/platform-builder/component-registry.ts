@@ -1,3 +1,4 @@
+
 // src/platform-builder/component-registry.ts
 import type { ComponentType } from 'react';
 import type { PlatformComponentInstance, GlobalComponentDefinition } from './data-models';
@@ -9,7 +10,7 @@ import SimpleButtonComponent from './renderable-components/SimpleButtonComponent
 import MaterialCardRenderer from './renderable-components/MaterialCardRenderer';
 import MaterialTextFieldRenderer from './renderable-components/MaterialTextFieldRenderer';
 import MaterialButtonRenderer from './renderable-components/MaterialButtonRenderer';
-import ChartComponent from './renderable-components/ChartComponent'; // Added Chart Renderer
+import ChartComponent from './renderable-components/ChartComponent';
 
 
 // Import Shadcn renderers
