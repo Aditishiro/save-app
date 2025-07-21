@@ -7,6 +7,10 @@ import type { PlatformComponentInstance, GlobalComponentDefinition } from './dat
 import PlaceholderComponent from './renderable-components/PlaceholderComponent';
 import HeadingTextComponent from './renderable-components/HeadingTextComponent';
 import SimpleButtonComponent from './renderable-components/SimpleButtonComponent';
+import MaterialCardRenderer from './renderable-components/MaterialCardRenderer';
+import MaterialTextFieldRenderer from './renderable-components/MaterialTextFieldRenderer';
+import MaterialButtonRenderer from './renderable-components/MaterialButtonRenderer';
+
 
 // Import Shadcn renderers
 import ShadcnAccordionRenderer from './renderable-components/ShadcnAccordionRenderer';
@@ -49,6 +53,11 @@ export const componentRegistry: Record<string, ComponentType<RenderableComponent
   HeadingText: HeadingTextComponent,
   SimpleButton: SimpleButtonComponent,
   
+  // Material Concept Components
+  MaterialCard: MaterialCardRenderer,
+  MaterialTextField: MaterialTextFieldRenderer,
+  MaterialButton: MaterialButtonRenderer,
+
   // Shadcn Components
   ShadcnAccordion: ShadcnAccordionRenderer,
   ShadcnAlertDialog: ShadcnAlertDialogRenderer,
