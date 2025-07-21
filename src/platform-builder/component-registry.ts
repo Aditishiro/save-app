@@ -43,6 +43,11 @@ import ShadcnTabsRenderer from './renderable-components/ShadcnTabsRenderer';
 import ShadcnTextareaRenderer from './renderable-components/ShadcnTextareaRenderer';
 import ShadcnTooltipRenderer from './renderable-components/ShadcnTooltipRenderer';
 
+// Import newly created renderers
+import DropdownFilterRenderer from './renderable-components/DropdownFilterRenderer';
+import FormRenderer from './renderable-components/FormRenderer';
+import FileUploadRenderer from './renderable-components/FileUploadRenderer';
+
 
 export interface RenderableComponentProps {
   instance: PlatformComponentInstance;
@@ -62,6 +67,12 @@ export const componentRegistry: Record<string, ComponentType<RenderableComponent
   // Custom Components
   chart: ChartComponent,
   card: ShadcnCardRenderer, // Added alias for 'card' to point to ShadcnCardRenderer
+
+  // New generic components
+  dropdown_filter: DropdownFilterRenderer,
+  form: FormRenderer,
+  file_upload: FileUploadRenderer,
+
 
   // Shadcn Components
   ShadcnAccordion: ShadcnAccordionRenderer,
