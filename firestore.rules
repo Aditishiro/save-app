@@ -1,14 +1,11 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Allow public read/write access to all collections and documents.
-    // WARNING: This makes your database publicly accessible.
-    // Anyone can read, write, and delete data.
-    // This should only be used for open, public applications where
-    // data security is not a concern.
-
+    // This rule allows anyone, authenticated or not, to read and write to
+    // any document in your Firestore database.
+    // Use this for development or for fully public data only.
     match /{document=**} {
       allow read, write: if true;
     }
