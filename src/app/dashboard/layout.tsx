@@ -21,6 +21,7 @@ import {
   Wand2,
   Home,
   Palette, 
+  MessageCircle,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -55,6 +56,7 @@ const navItems = [
 
 const platformBuilderNavItems = [
   { href: '/dashboard/platform-builder/my-platforms', label: 'My Platforms', icon: Building },
+  { href: '/dashboard/platform-builder/ai-chatbot', label: 'AI Platform Generator', icon: MessageCircle },
   { href: '/dashboard/platform-builder/ai-optimizer', label: 'AI Platform Optimizer', icon: Wand2 },
   { href: '/dashboard/platform-builder/analytics', label: 'Platform Analytics', icon: Brain },
 ];
