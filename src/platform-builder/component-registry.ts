@@ -1,4 +1,3 @@
-
 // src/platform-builder/component-registry.ts
 import type { ComponentType } from 'react';
 import type { PlatformComponentInstance, GlobalComponentDefinition } from './data-models';
@@ -10,6 +9,7 @@ import SimpleButtonComponent from './renderable-components/SimpleButtonComponent
 import MaterialCardRenderer from './renderable-components/MaterialCardRenderer';
 import MaterialTextFieldRenderer from './renderable-components/MaterialTextFieldRenderer';
 import MaterialButtonRenderer from './renderable-components/MaterialButtonRenderer';
+import ChartComponent from './renderable-components/ChartComponent'; // Added Chart Renderer
 
 
 // Import Shadcn renderers
@@ -57,6 +57,10 @@ export const componentRegistry: Record<string, ComponentType<RenderableComponent
   MaterialCard: MaterialCardRenderer,
   MaterialTextField: MaterialTextFieldRenderer,
   MaterialButton: MaterialButtonRenderer,
+
+  // Custom Components
+  chart: ChartComponent,
+  card: ShadcnCardRenderer, // Added alias for 'card' to point to ShadcnCardRenderer
 
   // Shadcn Components
   ShadcnAccordion: ShadcnAccordionRenderer,
